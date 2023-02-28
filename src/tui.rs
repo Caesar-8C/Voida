@@ -38,7 +38,7 @@ pub async fn listen_keys(earth_view_sender: Sender<bool>) {
 }
 
 pub async fn run(bodies: Receiver<HashMap<String, Body>>, earth_view: Receiver<bool>) {
-    let sun_scale = 10_f64 / 2_f64 / 10_f64.powi(11);
+    let sun_scale = 10_f64 / 10_f64.powi(11);
     let earth_scale = 10_f64 / 8_f64 / 10_f64.powi(8);
     let start = Instant::now();
     let period = Duration::from_millis(20);
