@@ -6,7 +6,6 @@ mod body;
 use std::time::Duration;
 use utils::Vec3;
 use tokio;
-use tokio::sync::watch;
 use crate::body::Body;
 use crate::world::World;
 
@@ -33,16 +32,12 @@ async fn main() {
         Vec3 { x: 0., y: 30860., z: 0. },
     );
 
-    let mut world = World::new();
+    let (mut world, world_watch) = World::new();
     world.add_body(sun);
     world.add_body(earth);
     world.add_body(moon);
 
-    let (tx, rx) = watch::channel(world.bodies.clone());
-    let (keys_tx, keys_rx) = watch::channel(false);
-
-    tokio::spawn(tui::listen_keys(keys_tx));
-    tokio::spawn(tui::run(rx, keys_rx));
-    tokio::time::sleep(Duration::from_secs(1)).await;
-    world.spin(tx).await;
+    tokio::spawn(tui::run(world_watch, 20));
+    let simulation_period = Duration::from_millis(10);
+    world.spin(simulation_period).await;
 }

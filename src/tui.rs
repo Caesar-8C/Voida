@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::io::stdin;
 use std::time::Duration;
 use tokio::sync::watch::{Receiver, Sender};
+use tokio::sync::watch;
 use tokio::time::Instant;
 use termion::event::Key;
 use termion::input::TermRead;
@@ -18,7 +19,7 @@ fn draw(map: &Vec<Vec<String>>) {
     print!("{}c{}", 27 as char, st);
 }
 
-pub async fn listen_keys(earth_view_sender: Sender<bool>) {
+async fn listen_keys(earth_view_sender: Sender<bool>) {
     let stdin = stdin();
     let mut earth_view = false;
     for c in stdin.keys() {
@@ -33,15 +34,18 @@ pub async fn listen_keys(earth_view_sender: Sender<bool>) {
             },
             _ => (),
         };
-        earth_view_sender.send(earth_view);
+        earth_view_sender.send(earth_view).unwrap();
     }
 }
 
-pub async fn run(bodies: Receiver<HashMap<String, Body>>, earth_view: Receiver<bool>) {
+pub async fn run(bodies: Receiver<HashMap<String, Body>>, fps: u32) {
+    let (user_input_tx, earth_view) = watch::channel(false);
+    tokio::spawn(listen_keys(user_input_tx));
+
     let sun_scale = 10_f64 / 10_f64.powi(11);
     let earth_scale = 10_f64 / 8_f64 / 10_f64.powi(8);
     let start = Instant::now();
-    let period = Duration::from_millis(20);
+    let period = Duration::from_millis((1. / fps as f32 * 1000.) as u64);
     let mut wake = start + period;
 
     loop {

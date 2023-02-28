@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use crate::Vec3;
 
-const G: f64 = 6.6743 as f64 * 0.00000000001;
+const G: f64 = 6.6743 as f64 * 0.000_000_000_01;
+const DELTA_T: f64 = 60. * 60.;
 
 #[derive(Clone, Debug)]
 pub struct Body {
@@ -30,7 +31,6 @@ impl Body {
     }
 
     pub fn apply_gravity(&mut self, others: &HashMap<String, Body>) {
-        let period = (60 * 60) as f64;
         let mut acceleration = Vec3::default();
 
         for (_, other) in others {
@@ -39,9 +39,9 @@ impl Body {
             }
 
             let (sq_dist, direction) = self.pos.get_data(&other.pos);
-            acceleration += direction * (G * other.mass.clone() / sq_dist);
+            acceleration += direction * (G * other.mass / sq_dist);
         }
-        self.pos += &self.vel * period;
-        self.vel += acceleration * period;
+        self.vel += acceleration * DELTA_T;
+        self.pos += &self.vel * DELTA_T;
     }
 }
