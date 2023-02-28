@@ -8,6 +8,14 @@ pub struct Vec3 {
 }
 
 impl Vec3 {
+    pub fn default() -> Self {
+        Self {
+            x: 0.,
+            y: 0.,
+            z: 0.,
+        }
+    }
+
     pub fn get_data(&self, other: &Vec3) -> (f64, Vec3) {
         let sq_dist = (self.x - other.x).powi(2) + (self.y - other.y).powi(2) + (self.z - other.z).powi(2);
         let dist = sq_dist.sqrt();

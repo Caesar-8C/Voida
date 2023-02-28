@@ -31,6 +31,7 @@ impl Body {
 
     pub fn apply_gravity(&mut self, others: &HashMap<String, Body>) {
         let period = (60 * 60) as f64;
+        let mut acceleration = Vec3::default();
 
         for (_, other) in others {
             if self.name == other.name {
@@ -38,9 +39,9 @@ impl Body {
             }
 
             let (sq_dist, direction) = self.pos.get_data(&other.pos);
-            let acceleration = direction * (G * other.mass.clone() / sq_dist);
-            self.pos += &self.vel * period;
-            self.vel += acceleration * period;
+            acceleration += direction * (G * other.mass.clone() / sq_dist);
         }
+        self.pos += &self.vel * period;
+        self.vel += acceleration * period;
     }
 }

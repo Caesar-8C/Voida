@@ -34,7 +34,7 @@ async fn main() {
     );
 
     let mut world = World::new();
-    // world.add_body(sun);
+    world.add_body(sun);
     world.add_body(earth);
     world.add_body(moon);
 
