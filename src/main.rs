@@ -26,12 +26,12 @@ async fn main() {
         Vec3 { x: 0., y: 29780., z: 0. },
     );
 
-    // let moon = Body::new(
-    //     "Moon".to_string(),
-    //     7.34767309 as f64 * 10_f64.powi(22),
-    //     Vec3 { x: 1.485255 as f64 * 10_f64.powi(11), y: 0., z: 0. },
-    //     Vec3 { x: 0., y: 30860., z: 0. },
-    // );
+    let moon = Body::new(
+        "Moon".to_string(),
+        7.34767309 as f64 * 10_f64.powi(22),
+        Vec3 { x: 1.485255 as f64 * 10_f64.powi(11), y: 0., z: 0. },
+        Vec3 { x: 0., y: 30860., z: 0. },
+    );
 
     let mut world = World::new();
     world.add_body(sun);

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::Vec3;
 
 const G: f64 = 6.6743 as f64 * 0.00000000001;
@@ -20,18 +21,18 @@ impl Body {
         }
     }
 
-    pub fn name(&self) -> &String {
-        &self.name
+    pub fn name(&self) -> String {
+        self.name.clone()
     }
 
     pub fn pos(&self) -> &Vec3 {
         &self.pos
     }
 
-    pub fn apply_gravity(&mut self, others: &Vec<Body>) {
+    pub fn apply_gravity(&mut self, others: &HashMap<String, Body>) {
         let period = (60 * 60) as f64;
 
-        for other in others {
+        for (_, other) in others {
             if self.name == other.name {
                 continue;
             }

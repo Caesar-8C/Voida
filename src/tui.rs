@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::time::Duration;
 use tokio::sync::watch::Receiver;
 use tokio::time::Instant;
@@ -14,7 +15,7 @@ fn draw(map: &Vec<Vec<String>>) {
     print!("{}c{}", 27 as char, st);
 }
 
-pub async fn run(rx: Receiver<Vec<Body>>) {
+pub async fn run(rx: Receiver<HashMap<String, Body>>) {
     let scale = 10_f64 / 2_f64 / 10_f64.powi(11);
     let start = Instant::now();
     let period = Duration::from_millis(20);
@@ -36,11 +37,15 @@ pub async fn run(rx: Receiver<Vec<Body>>) {
         }
         map[41][81] = "/".to_string();
 
-        for body in &*rx.borrow() {
-            let char = if *body.name() == "Sun".to_string() {
+        for (_, body) in &*rx.borrow() {
+            let char = if body.name() == "Sun".to_string() {
                 "O".to_string()
-            } else {
+            } else if body.name() == "Earth".to_string() {
                 "o".to_string()
+            } else if body.name() == "Moon".to_string() {
+                "°".to_string()
+            } else {
+                "X".to_string()
             };
 
             let x_f64 = body.pos().x * scale * 2. + 40.;
