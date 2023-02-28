@@ -34,13 +34,15 @@ async fn main() {
     );
 
     let mut world = World::new();
-    world.add_body(sun);
+    // world.add_body(sun);
     world.add_body(earth);
-    // world.add_body(moon);
+    world.add_body(moon);
 
     let (tx, rx) = watch::channel(world.bodies.clone());
+    let (keys_tx, keys_rx) = watch::channel(false);
 
-    tokio::spawn(tui::run(rx));
+    tokio::spawn(tui::listen_keys(keys_tx));
+    tokio::spawn(tui::run(rx, keys_rx));
     tokio::time::sleep(Duration::from_secs(1)).await;
     world.spin(tx).await;
 }

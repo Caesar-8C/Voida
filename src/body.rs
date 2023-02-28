@@ -25,8 +25,8 @@ impl Body {
         self.name.clone()
     }
 
-    pub fn pos(&self) -> &Vec3 {
-        &self.pos
+    pub fn pos(&self) -> Vec3 {
+        self.pos.clone()
     }
 
     pub fn apply_gravity(&mut self, others: &HashMap<String, Body>) {

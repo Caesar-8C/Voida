@@ -1,7 +1,10 @@
 use std::collections::HashMap;
+use std::io::stdin;
 use std::time::Duration;
-use tokio::sync::watch::Receiver;
+use tokio::sync::watch::{Receiver, Sender};
 use tokio::time::Instant;
+use termion::event::Key;
+use termion::input::TermRead;
 use crate::body::Body;
 
 fn draw(map: &Vec<Vec<String>>) {
@@ -15,8 +18,28 @@ fn draw(map: &Vec<Vec<String>>) {
     print!("{}c{}", 27 as char, st);
 }
 
-pub async fn run(rx: Receiver<HashMap<String, Body>>) {
-    let scale = 10_f64 / 2_f64 / 10_f64.powi(11);
+pub async fn listen_keys(earth_view_sender: Sender<bool>) {
+    let stdin = stdin();
+    let mut earth_view = false;
+    for c in stdin.keys() {
+        match c.unwrap() {
+            Key::Char('v') => {
+                if earth_view {
+                    earth_view = false;
+                }
+                else {
+                    earth_view = true;
+                }
+            },
+            _ => (),
+        };
+        earth_view_sender.send(earth_view);
+    }
+}
+
+pub async fn run(bodies: Receiver<HashMap<String, Body>>, earth_view: Receiver<bool>) {
+    let sun_scale = 10_f64 / 2_f64 / 10_f64.powi(11);
+    let earth_scale = 10_f64 / 8_f64 / 10_f64.powi(8);
     let start = Instant::now();
     let period = Duration::from_millis(20);
     let mut wake = start + period;
@@ -28,6 +51,11 @@ pub async fn run(rx: Receiver<HashMap<String, Body>>) {
         }
         wake = now + period;
 
+        let scale = match *earth_view.borrow() {
+            true => earth_scale,
+            false => sun_scale,
+        };
+
         let mut map = vec![vec![" ".to_string(); 82]; 42];
         for i in 0..82 {
             map[41][i] = "-".to_string();
@@ -37,19 +65,29 @@ pub async fn run(rx: Receiver<HashMap<String, Body>>) {
         }
         map[41][81] = "/".to_string();
 
-        for (_, body) in &*rx.borrow() {
+        let earth_pos = bodies.borrow()["Earth"].pos();
+
+        for (_, body) in &*bodies.borrow() {
             let char = if body.name() == "Sun".to_string() {
                 "O".to_string()
             } else if body.name() == "Earth".to_string() {
                 "o".to_string()
             } else if body.name() == "Moon".to_string() {
-                "°".to_string()
+                "∘".to_string()
             } else {
                 "X".to_string()
             };
 
-            let x_f64 = body.pos().x * scale * 2. + 40.;
-            let y_f64 = body.pos().y * scale + 20.;
+            let mut x_f64 = body.pos().x;
+            let mut y_f64 = body.pos().y;
+
+            if *earth_view.borrow() {
+                x_f64 -= earth_pos.x;
+                y_f64 -= earth_pos.y;
+            }
+
+            x_f64 = x_f64 * scale * 2. + 40.;
+            y_f64 = y_f64 * scale + 20.;
 
             if x_f64 > 81. || x_f64 < 0. || y_f64 > 41. || y_f64 < 0. {
                 continue;
