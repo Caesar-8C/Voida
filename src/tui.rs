@@ -99,7 +99,9 @@ pub async fn run(bodies: Receiver<HashMap<String, Body>>, fps: u32) {
 
             let (x, y) = (x_f64 as usize, 40 - y_f64 as usize);
 
-            map[y][x] = char;
+            if char != "∘".to_string() || map[y][x] == " ".to_string() {
+                map[y][x] = char;
+            }
         }
         draw(&map);
     }
