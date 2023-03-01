@@ -6,7 +6,7 @@ use tokio::sync::watch;
 use tokio::time::interval;
 use termion::event::Key;
 use termion::input::TermRead;
-use crate::body::Body;
+use crate::celestial::Celestial;
 use crate::Vec3;
 
 async fn listen_keys(earth_view_sender: Sender<String>) {
@@ -29,13 +29,13 @@ async fn listen_keys(earth_view_sender: Sender<String>) {
 
 pub struct TUI {
     fps: u32,
-    world: Receiver<HashMap<String, Body>>,
+    world: Receiver<HashMap<String, Celestial>>,
     view: Receiver<String>,
     scales: HashMap<String, f64>,
 }
 
 impl TUI {
-    pub async fn init(world: Receiver<HashMap<String, Body>>, fps: u32) -> Self {
+    pub async fn init(world: Receiver<HashMap<String, Celestial>>, fps: u32) -> Self {
         let (user_input_tx, view) = watch::channel("global".to_string());
         tokio::spawn(listen_keys(user_input_tx));
 
@@ -69,11 +69,11 @@ impl TUI {
 
             let mut map = Self::construct_map();
 
-            for (_, body) in &*self.world.borrow() {
-                let char = Self::get_symbol(&body.name());
+            for (_, celestial) in &*self.world.borrow() {
+                let char = Self::get_symbol(&celestial.name());
 
-                let x_f64 = (body.pos().x - focus.x) * self.scales[view] * 2. + 40.;
-                let y_f64 = (body.pos().y - focus.y) * self.scales[view] + 20.;
+                let x_f64 = (celestial.pos().x - focus.x) * self.scales[view] * 2. + 40.;
+                let y_f64 = (celestial.pos().y - focus.y) * self.scales[view] + 20.;
 
                 if x_f64 > 81. || x_f64 < 0. || y_f64 > 41. || y_f64 < 0. {
                     continue;

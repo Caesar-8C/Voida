@@ -1,14 +1,14 @@
 use crate::utils::Vec3;
 
 #[derive(Clone, Debug)]
-pub struct Body {
+pub struct Celestial {
     name: String,
     mass: f64,
     pos: Vec3,
     vel: Vec3,
 }
 
-impl Body {
+impl Celestial {
     pub fn new(name: String, mass: f64, pos: Vec3, vel: Vec3) -> Self {
         Self {
             name,
