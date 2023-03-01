@@ -9,17 +9,6 @@ use termion::input::TermRead;
 use crate::body::Body;
 use crate::Vec3;
 
-fn draw(map: &Vec<Vec<String>>) {
-    let mut st = "".to_string();
-    for first in map {
-        for second in first {
-            st += second;
-        }
-        st += "\n";
-    }
-    print!("{}c{}", 27 as char, st);
-}
-
 async fn listen_keys(earth_view_sender: Sender<String>) {
     let stdin = stdin();
     let mut earth_view = "global".to_string();
@@ -28,11 +17,10 @@ async fn listen_keys(earth_view_sender: Sender<String>) {
             Key::Char('v') => {
                 if earth_view == "global".to_string() {
                     earth_view = "earth".to_string();
-                }
-                else {
+                } else {
                     earth_view = "global".to_string();
                 }
-            },
+            }
             _ => (),
         };
         earth_view_sender.send(earth_view.clone()).unwrap();
@@ -97,7 +85,7 @@ impl TUI {
                     map[y][x] = char;
                 }
             }
-            draw(&map);
+            self.draw(&map);
         }
     }
 
@@ -120,5 +108,16 @@ impl TUI {
             "Moon" => "∘".to_string(),
             _ => "X".to_string(),
         }
+    }
+
+    fn draw(&self, map: &Vec<Vec<String>>) {
+        let mut st = "".to_string();
+        for first in map {
+            for second in first {
+                st += second;
+            }
+            st += "\n";
+        }
+        print!("{}c{}", 27 as char, st);
     }
 }
