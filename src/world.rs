@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 use tokio::sync::watch::{Receiver, Sender};
-use tokio::time::Instant;
+use tokio::time::{Instant, interval};
 use tokio::sync::watch;
 use crate::body::Body;
 
@@ -28,15 +28,10 @@ impl World {
     }
 
     pub async fn spin(&mut self, simulation_period: Duration) {
-        let start = Instant::now();
-        let mut wake = start + simulation_period;
+        let mut interval = interval(simulation_period);
 
         loop {
-            let now = Instant::now();
-            if wake > now {
-                tokio::time::sleep(wake - now).await;
-            }
-            wake = now + simulation_period;
+            interval.tick().await;
 
             let old_state = self.bodies.clone();
             for (_, body) in &mut self.bodies {

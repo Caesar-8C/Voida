@@ -3,7 +3,7 @@ use std::io::stdin;
 use std::time::Duration;
 use tokio::sync::watch::{Receiver, Sender};
 use tokio::sync::watch;
-use tokio::time::Instant;
+use tokio::time::{Instant, interval};
 use termion::event::Key;
 use termion::input::TermRead;
 use crate::body::Body;
@@ -44,16 +44,11 @@ pub async fn run(bodies: Receiver<HashMap<String, Body>>, fps: u32) {
 
     let sun_scale = 10_f64 / 10_f64.powi(11);
     let earth_scale = 10_f64 / 8_f64 / 10_f64.powi(8);
-    let start = Instant::now();
-    let period = Duration::from_millis((1. / fps as f32 * 1000.) as u64);
-    let mut wake = start + period;
+
+    let mut interval = interval(Duration::from_millis((1. / fps as f32 * 1000.) as u64));
 
     loop {
-        let now = Instant::now();
-        if wake > now {
-            tokio::time::sleep(wake - now).await;
-        }
-        wake = now + period;
+        interval.tick().await;
 
         let scale = match *earth_view.borrow() {
             true => earth_scale,
