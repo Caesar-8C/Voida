@@ -1,9 +1,14 @@
 use std::collections::HashMap;
 use std::time::Duration;
 use tokio::sync::watch::{Receiver, Sender};
-use tokio::time::{Instant, interval};
+use tokio::time::interval;
 use tokio::sync::watch;
 use crate::body::Body;
+use crate::utils::NormVec3;
+use crate::Vec3;
+
+const G: f64 = 6.6743 as f64 * 0.000_000_000_01;
+const DELTA_T: f64 = 60. * 60.;
 
 pub struct World {
     bodies: HashMap<String, Body>,
@@ -27,15 +32,31 @@ impl World {
         self.bodies.insert(new_body.name(), new_body);
     }
 
+    pub fn get_global_acceleration(&self, origin: Vec3) -> Vec3 {
+        let mut acceleration = Vec3::default();
+
+        for (_, body) in &self.bodies {
+            let NormVec3 { distance_sq, unit_direction } = (body.pos() - &origin).normalize();
+            if distance_sq > 1. {
+                acceleration += unit_direction * (G * body.mass() / distance_sq);
+            }
+        }
+
+        acceleration
+    }
+
     pub async fn spin(&mut self, simulation_period: Duration) {
         let mut interval = interval(simulation_period);
 
         loop {
             interval.tick().await;
 
-            let old_state = self.bodies.clone();
-            for (_, body) in &mut self.bodies {
-                body.apply_gravity(&old_state);
+            let cloned_keys: Vec<String> = self.bodies.keys().cloned().collect();
+            for key in cloned_keys {
+                let acceleration = self.get_global_acceleration(self.bodies[&key].pos());
+                if let Some(body) = self.bodies.get_mut(&key) {
+                    body.apply_gravity(acceleration, DELTA_T);
+                }
             }
 
             self.world_publisher.send(self.bodies.clone()).unwrap();
