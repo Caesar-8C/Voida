@@ -7,6 +7,7 @@ use std::time::Duration;
 use utils::Vec3;
 use tokio;
 use crate::body::Body;
+use crate::tui::TUI;
 use crate::world::World;
 
 #[tokio::main]
@@ -37,7 +38,8 @@ async fn main() {
     world.add_body(earth);
     world.add_body(moon);
 
-    tokio::spawn(tui::run(world_watch, 20));
+    let tui = TUI::init(world_watch, 20).await;
+    tokio::spawn(tui.run());
     let simulation_period = Duration::from_millis(10);
     world.spin(simulation_period).await;
 }

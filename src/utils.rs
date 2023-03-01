@@ -9,6 +9,7 @@ pub struct Vec3 {
 
 pub struct NormVec3 {
     pub distance_sq: f64,
+    pub distance: f64,
     pub unit_direction: Vec3,
 }
 
@@ -31,6 +32,7 @@ impl Vec3 {
 
         NormVec3 {
             distance_sq,
+            distance: dist,
             unit_direction: Self { x, y, z },
         }
     }
