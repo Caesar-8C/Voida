@@ -52,10 +52,16 @@ impl World {
             interval.tick().await;
 
             let cloned_keys: Vec<String> = self.bodies.keys().cloned().collect();
-            for key in cloned_keys {
-                let acceleration = self.get_global_acceleration(self.bodies[&key].pos());
-                if let Some(body) = self.bodies.get_mut(&key) {
-                    body.apply_gravity(acceleration, DELTA_T);
+            let mut accelerations = HashMap::new();
+            for key in &cloned_keys {
+                let a = self.get_global_acceleration(self.bodies[key].pos());
+                accelerations.insert(key.clone(), a);
+            }
+            for key in &cloned_keys {
+                if let Some(body) = self.bodies.get_mut(key) {
+                    if let Some(a) = accelerations.get(key) {
+                        body.apply_gravity(a.clone(), DELTA_T);
+                    }
                 }
             }
 
