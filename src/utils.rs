@@ -7,6 +7,11 @@ pub struct Vec3 {
     pub z: f64,
 }
 
+pub struct NormVec3 {
+    pub distance_sq: f64,
+    pub unit_direction: Vec3,
+}
+
 impl Vec3 {
     pub fn default() -> Self {
         Self {
@@ -16,17 +21,18 @@ impl Vec3 {
         }
     }
 
-    pub fn get_data(&self, other: &Vec3) -> (f64, Vec3) {
-        let sq_dist = (self.x - other.x).powi(2) + (self.y - other.y).powi(2) + (self.z - other.z).powi(2);
-        let dist = sq_dist.sqrt();
+    pub fn normalize(&self) -> NormVec3 {
+        let distance_sq = self.x.powi(2) + self.y.powi(2) + self.z.powi(2);
+        let dist = distance_sq.sqrt();
 
-        let x = (other.x - self.x) / dist;
-        let y = (other.y - self.y) / dist;
-        let z = (other.z - self.z) / dist;
+        let x = self.x / dist;
+        let y = self.y / dist;
+        let z = self.z / dist;
 
-        let dir = Self { x, y, z };
-
-        (sq_dist, dir)
+        NormVec3 {
+            distance_sq,
+            unit_direction: Self { x, y, z },
+        }
     }
 }
 
@@ -67,5 +73,17 @@ impl ops::AddAssign<Vec3> for Vec3 {
         self.x += rhs.x;
         self.y += rhs.y;
         self.z += rhs.z;
+    }
+}
+
+impl ops::Sub<&Vec3> for &Vec3 {
+    type Output = Vec3;
+
+    fn sub(self, rhs: &Vec3) -> Self::Output {
+        Vec3 {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+        }
     }
 }

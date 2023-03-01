@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::Vec3;
+use crate::utils::{Vec3, NormVec3};
 
 const G: f64 = 6.6743 as f64 * 0.000_000_000_01;
 const DELTA_T: f64 = 60. * 60.;
@@ -38,8 +38,8 @@ impl Body {
                 continue;
             }
 
-            let (sq_dist, direction) = self.pos.get_data(&other.pos);
-            acceleration += direction * (G * other.mass / sq_dist);
+            let NormVec3 { distance_sq, unit_direction } = (&other.pos - &self.pos).normalize();
+            acceleration += unit_direction * (G * other.mass / distance_sq);
         }
         self.vel += acceleration * DELTA_T;
         self.pos += &self.vel * DELTA_T;
