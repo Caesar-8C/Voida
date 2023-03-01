@@ -28,6 +28,18 @@ impl World {
         )
     }
 
+    pub async fn spin(&mut self, simulation_period: Duration) {
+        let mut interval = interval(simulation_period);
+
+        loop {
+            interval.tick().await;
+
+            self.update_celestials();
+
+            self.world_publisher.send(self.celestials.clone()).unwrap();
+        }
+    }
+
     pub fn add_celestial(&mut self, new_celestial: Celestial) {
         self.celestials.insert(new_celestial.name(), new_celestial);
     }
@@ -45,27 +57,19 @@ impl World {
         acceleration
     }
 
-    pub async fn spin(&mut self, simulation_period: Duration) {
-        let mut interval = interval(simulation_period);
-
-        loop {
-            interval.tick().await;
-
-            let cloned_keys: Vec<String> = self.celestials.keys().cloned().collect();
-            let mut accelerations = HashMap::new();
-            for key in &cloned_keys {
-                let a = self.get_global_acceleration(self.celestials[key].pos());
-                accelerations.insert(key.clone(), a);
-            }
-            for key in &cloned_keys {
-                if let Some(celestial) = self.celestials.get_mut(key) {
-                    if let Some(a) = accelerations.get(key) {
-                        celestial.apply_gravity(a.clone(), DELTA_T);
-                    }
+    fn update_celestials(&mut self) {
+        let cloned_keys: Vec<String> = self.celestials.keys().cloned().collect();
+        let mut accelerations = HashMap::new();
+        for key in &cloned_keys {
+            let a = self.get_global_acceleration(self.celestials[key].pos());
+            accelerations.insert(key.clone(), a);
+        }
+        for key in &cloned_keys {
+            if let Some(celestial) = self.celestials.get_mut(key) {
+                if let Some(a) = accelerations.get(key) {
+                    celestial.apply_gravity(a.clone(), DELTA_T);
                 }
             }
-
-            self.world_publisher.send(self.celestials.clone()).unwrap();
         }
     }
 }
