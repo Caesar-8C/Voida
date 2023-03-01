@@ -3,7 +3,7 @@ use std::io::stdin;
 use std::time::Duration;
 use tokio::sync::watch::{Receiver, Sender};
 use tokio::sync::watch;
-use tokio::time::{Instant, interval};
+use tokio::time::interval;
 use termion::event::Key;
 use termion::input::TermRead;
 use crate::body::Body;

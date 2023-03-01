@@ -76,7 +76,7 @@ impl ops::AddAssign<Vec3> for Vec3 {
     }
 }
 
-impl ops::Sub<&Vec3> for &Vec3 {
+impl ops::Sub<&Vec3> for Vec3 {
     type Output = Vec3;
 
     fn sub(self, rhs: &Vec3) -> Self::Output {
