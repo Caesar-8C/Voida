@@ -36,7 +36,7 @@ impl World {
         let mut acceleration = Vec3::default();
 
         for (_, body) in &self.bodies {
-            let NormVec3 { distance_sq, unit_direction } = (body.pos() - &origin).normalize();
+            let NormVec3 { distance_sq, unit_direction, .. } = (body.pos() - &origin).normalize();
             if distance_sq > 1. {
                 acceleration += unit_direction * (G * body.mass() / distance_sq);
             }
