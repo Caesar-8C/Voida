@@ -9,21 +9,23 @@ use tokio::sync::watch;
 use tokio::sync::watch::{Receiver, Sender};
 use tokio::time::interval;
 
-async fn listen_keys(earth_view_sender: Sender<String>) {
+async fn listen_keys(view_sender: Sender<String>) {
     let stdin = stdin();
-    let mut earth_view = "global".to_string();
+    let mut view = "global".to_string();
     for c in stdin.keys() {
         match c.unwrap() {
-            Key::Char('v') => {
-                if earth_view == "global".to_string() {
-                    earth_view = "earth".to_string();
-                } else {
-                    earth_view = "global".to_string();
-                }
+            Key::Char('g') => {
+                view = "global".to_string();
+            }
+            Key::Char('e') => {
+                view = "earth".to_string();
+            }
+            Key::Char('i') => {
+                view = "iss".to_string();
             }
             _ => (),
         };
-        earth_view_sender.send(earth_view.clone()).unwrap();
+        view_sender.send(view.clone()).unwrap();
     }
 }
 
@@ -45,6 +47,7 @@ impl TUI {
         let mut scales = HashMap::new();
         scales.insert("global".to_string(), 10_f64 / 10_f64.powi(11));
         scales.insert("earth".to_string(), 10_f64 / 8_f64 / 10_f64.powi(8));
+        scales.insert("iss".to_string(), 10_f64 / 8_f64 / 10_f64.powi(8));
 
         Self {
             fps,
@@ -67,6 +70,7 @@ impl TUI {
             let focus = match view {
                 "global" => Vec3::default(),
                 "earth" => world_copy["Earth"].pos(),
+                "iss" => world_copy["Earth"].pos(),
                 _ => return,
             };
 
