@@ -1,13 +1,13 @@
+use crate::celestial::Celestial;
+use crate::Vec3;
 use std::collections::HashMap;
 use std::io::stdin;
 use std::time::Duration;
-use tokio::sync::watch::{Receiver, Sender};
-use tokio::sync::watch;
-use tokio::time::interval;
 use termion::event::Key;
 use termion::input::TermRead;
-use crate::celestial::Celestial;
-use crate::Vec3;
+use tokio::sync::watch;
+use tokio::sync::watch::{Receiver, Sender};
+use tokio::time::interval;
 
 async fn listen_keys(earth_view_sender: Sender<String>) {
     let stdin = stdin();
@@ -35,7 +35,10 @@ pub struct TUI {
 }
 
 impl TUI {
-    pub async fn init(world: Receiver<HashMap<String, Celestial>>, fps: u32) -> Self {
+    pub async fn init(
+        world: Receiver<HashMap<String, Celestial>>,
+        fps: u32,
+    ) -> Self {
         let (user_input_tx, view) = watch::channel("global".to_string());
         tokio::spawn(listen_keys(user_input_tx));
 
@@ -52,23 +55,23 @@ impl TUI {
     }
 
     pub async fn run(self) {
-        let mut interval = interval(
-            Duration::from_millis((1. / self.fps as f32 * 1000.) as u64)
-        );
+        let mut interval = interval(Duration::from_millis(
+            (1. / self.fps as f32 * 1000.) as u64,
+        ));
 
         loop {
             interval.tick().await;
 
+            let world_copy = (*self.world.borrow()).clone();
             let view: &str = &*self.view.borrow();
-
             let focus = match view {
                 "global" => Vec3::default(),
-                "earth" => self.world.borrow()["Earth"].pos(),
+                "earth" => world_copy["Earth"].pos(),
                 _ => return,
             };
 
             let mut map = self.construct_map();
-            self.draw_celestials(&mut map, view, focus);
+            self.draw_celestials(&mut map, world_copy, view, focus);
 
             self.flush(&map);
         }
@@ -86,11 +89,18 @@ impl TUI {
         map
     }
 
-    fn draw_celestials(&self, map: &mut Vec<Vec<String>>, view: &str, focus: Vec3) {
-        for (_, celestial) in &*self.world.borrow() {
+    fn draw_celestials(
+        &self,
+        map: &mut Vec<Vec<String>>,
+        world: HashMap<String, Celestial>,
+        view: &str,
+        focus: Vec3,
+    ) {
+        for (_, celestial) in &world {
             let char = Self::get_symbol(&celestial.name());
 
-            let x_f64 = (celestial.pos().x - focus.x) * self.scales[view] * 2. + 40.;
+            let x_f64 =
+                (celestial.pos().x - focus.x) * self.scales[view] * 2. + 40.;
             let y_f64 = (celestial.pos().y - focus.y) * self.scales[view] + 20.;
 
             if x_f64 > 81. || x_f64 < 0. || y_f64 > 41. || y_f64 < 0. {
