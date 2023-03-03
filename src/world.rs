@@ -1,9 +1,13 @@
-use crate::celestials::{Celestial, Celestials};
+pub mod celestials;
+pub mod config;
+
 use std::collections::HashMap;
 use std::time::Duration;
 use tokio::sync::watch;
 use tokio::sync::watch::{Receiver, Sender};
 use tokio::time::interval;
+use celestials::{Celestial, Celestials};
+use config::Config;
 
 const DELTA_T: f64 = 60. * 60.;
 
@@ -13,12 +17,23 @@ pub struct World {
 }
 
 impl World {
-    pub fn new() -> (Self, Receiver<HashMap<String, Celestial>>) {
+    pub fn _new() -> (Self, Receiver<HashMap<String, Celestial>>) {
         let celestials = Celestials::new();
         let (world_publisher, world_watch) = watch::channel(celestials.get());
         (
             Self {
                 celestials,
+                world_publisher,
+            },
+            world_watch,
+        )
+    }
+
+    pub fn from_config(config: Config) -> (Self, Receiver<HashMap<String, Celestial>>) {
+        let (world_publisher, world_watch) = watch::channel(config.celestials.get());
+        (
+            Self {
+                celestials: config.celestials,
                 world_publisher,
             },
             world_watch,
@@ -39,7 +54,7 @@ impl World {
         }
     }
 
-    pub fn add_celestial(&mut self, new_celestial: Celestial) {
+    pub fn _add_celestial(&mut self, new_celestial: Celestial) {
         self.celestials.add(new_celestial);
     }
 }

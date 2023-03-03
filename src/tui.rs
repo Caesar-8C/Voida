@@ -1,4 +1,4 @@
-use crate::celestials::Celestial;
+use crate::world::celestials::Celestial;
 use crate::Vec3;
 use std::collections::HashMap;
 use std::io::stdin;
