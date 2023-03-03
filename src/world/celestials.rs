@@ -1,7 +1,7 @@
 use crate::utils::{NormVec3, Vec3};
 use std::collections::HashMap;
 
-const G: f64 = 6.6743 as f64 * 0.000_000_000_01;
+const G: f64 = 6.6743_f64 * 0.000_000_000_01;
 
 #[derive(Clone)]
 pub struct Celestials(HashMap<String, Celestial>);
