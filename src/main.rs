@@ -1,12 +1,12 @@
 mod utils;
 mod tui;
 mod world;
-mod celestial;
+mod celestials;
 
 use std::time::Duration;
 use utils::Vec3;
 use tokio;
-use crate::celestial::Celestial;
+use crate::celestials::Celestial;
 use crate::tui::TUI;
 use crate::world::World;
 

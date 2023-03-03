@@ -1,4 +1,4 @@
-use crate::celestial::Celestial;
+use crate::celestials::Celestial;
 use crate::Vec3;
 use std::collections::HashMap;
 use std::io::stdin;
@@ -65,8 +65,8 @@ impl TUI {
         loop {
             interval.tick().await;
 
-            let world_copy = (*self.world.borrow()).clone();
-            let view: &str = &*self.view.borrow();
+            let world_copy = self.world.borrow().clone();
+            let view: &str = &self.view.borrow();
             let focus = match view {
                 "global" => Vec3::default(),
                 "earth" => world_copy["Earth"].pos(),
@@ -113,7 +113,7 @@ impl TUI {
 
             let (x, y) = (x_f64 as usize, 40 - y_f64 as usize);
 
-            if char != "∘".to_string() || map[y][x] == " ".to_string() {
+            if &char != "∘" || &map[y][x] == " " {
                 map[y][x] = char;
             }
         }
