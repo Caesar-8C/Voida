@@ -1,3 +1,5 @@
+use crate::Vec3;
+
 #[derive(Clone)]
 pub struct Window {
     pub width: usize,
@@ -6,6 +8,8 @@ pub struct Window {
     pub y: usize,
     pub scale: f64,
     pub focus: String,
+    pub x_dir: Vec3,
+    pub y_dir:Vec3,
 }
 
 pub fn sun_standard() -> Window {
@@ -16,6 +20,8 @@ pub fn sun_standard() -> Window {
         y: 0,
         scale: 10_f64 / 10_f64.powi(11),
         focus: "Sun".to_string(),
+        x_dir: Vec3 {x: 1., y: 0., z: 0.},
+        y_dir: Vec3 {x: 0., y: 1., z: 0.},
     }
 }
 
@@ -27,6 +33,8 @@ pub fn earth_standard() -> Window {
         y: 0,
         scale: 10_f64 / 3_f64 / 10_f64.powi(8),
         focus: "Earth".to_string(),
+        x_dir: Vec3 {x: 1., y: 0., z: 0.},
+        y_dir: Vec3 {x: 0., y: 1., z: 0.},
     }
 }
 
@@ -37,6 +45,8 @@ pub fn moon_from_side() -> Window {
         x: 81,
         y: 41,
         scale: 10_f64 / 3_f64 / 10_f64.powi(8),
-        focus: "Moon".to_string(),
+        focus: "Earth".to_string(),
+        x_dir: Vec3 {x: 1., y: 0., z: 0.},
+        y_dir: Vec3 {x: 0., y: 0., z: 1.},
     }
 }

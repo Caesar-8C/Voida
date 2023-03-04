@@ -56,11 +56,7 @@ impl Tui {
         self.frame.fill("#".to_string());
 
         for window in &self.windows.clone() {
-            if &window.focus == "Moon" {
-                self.draw_moon(window);
-            } else {
-                self.draw_window(window);
-            }
+            self.draw_window(window);
         }
     }
 
@@ -78,42 +74,14 @@ impl Tui {
             let char = Self::get_symbol(&celestial.name());
 
             let x_f64 =
-                (celestial.pos().x - focus.x) * window.scale * 2. + window.width as f64 / 2.;
-            let y_f64 = (celestial.pos().y - focus.y) * window.scale + window.height as f64 / 2.;
+                (&celestial.pos() - &focus) * &window.x_dir * window.scale * 2. + window.width as f64 / 2.;
+            let y_f64 = (&focus - &celestial.pos()) * &window.y_dir * window.scale + window.height as f64 / 2.;
 
             if x_f64 > window.width as f64 || x_f64 < 0. || y_f64 > window.height as f64 || y_f64 < 0. {
                 continue;
             }
 
-            let (x, y) = (x_f64 as usize + window.x, window.height - y_f64 as usize + window.y);
-            if &char != "∘" || &self.frame.vec[y][x] == " " {
-                self.frame.vec[y][x] = char;
-            }
-        }
-    }
-
-    fn draw_moon(&mut self, window: &Window) {
-        for x in window.x..(window.x + window.width) {
-            for y in window.y..(window.y + window.height) {
-                self.frame.vec[y][x] = " ".to_string();
-            }
-        }
-
-        let world = &*self.world.borrow();
-        let focus = world["Earth"].pos();
-
-        for celestial in world.values() {
-            let char = Self::get_symbol(&celestial.name());
-
-            let x_f64 =
-                (celestial.pos().x - focus.x) * window.scale * 2. + window.width as f64 / 2.;
-            let y_f64 = (celestial.pos().z - focus.z) * window.scale + window.height as f64 / 2.;
-
-            if x_f64 > window.width as f64 || x_f64 < 0. || y_f64 > window.height as f64 || y_f64 < 0. {
-                continue;
-            }
-
-            let (x, y) = (x_f64 as usize + window.x, window.height - y_f64 as usize + window.y);
+            let (x, y) = (x_f64 as usize + window.x, y_f64 as usize + window.y);
             if &char != "∘" || &self.frame.vec[y][x] == " " {
                 self.frame.vec[y][x] = char;
             }
