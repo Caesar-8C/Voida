@@ -12,6 +12,15 @@ pub struct Window {
     pub y_dir:Vec3,
 }
 
+impl Window {
+    pub fn inside(&self, x: usize, y: usize) -> bool {
+        if x >= self.width || y >= self.height {
+            return false;
+        }
+        true
+    }
+}
+
 pub fn sun_standard() -> Window {
     Window {
         width: 80,

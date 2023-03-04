@@ -1,14 +1,14 @@
-pub mod window;
 mod frame;
+pub mod window;
 
+use crate::tui::frame::Frame;
+use crate::tui::window::Window;
 use crate::world::celestials::Celestial;
 use std::collections::HashMap;
 use std::time::Duration;
 use termion::terminal_size;
 use tokio::sync::watch::Receiver;
 use tokio::time::interval;
-use crate::tui::frame::Frame;
-use crate::tui::window::Window;
 
 pub struct Tui {
     fps: u32,
@@ -22,7 +22,6 @@ impl Tui {
         world: Receiver<HashMap<String, Celestial>>,
         fps: u32,
     ) -> Self {
-
         let (x, y) = terminal_size().unwrap();
         let frame = Frame::new(x as usize, y as usize - 1);
 
@@ -63,6 +62,9 @@ impl Tui {
     fn draw_window(&mut self, window: &Window) {
         for x in window.x..(window.x + window.width) {
             for y in window.y..(window.y + window.height) {
+                if !self.frame.inside(x, y) {
+                    continue;
+                }
                 self.frame.vec[y][x] = " ".to_string();
             }
         }
@@ -74,14 +76,30 @@ impl Tui {
             let char = Self::get_symbol(&celestial.name());
 
             let x_f64 =
-                (&celestial.pos() - &focus) * &window.x_dir * window.scale * 2. + window.width as f64 / 2.;
-            let y_f64 = (&focus - &celestial.pos()) * &window.y_dir * window.scale + window.height as f64 / 2.;
+                ((&celestial.pos() - &focus) * &window.x_dir * window.scale * 2.
+                    + window.width as f64 / 2.);
+            let y_f64 =
+                ((&focus - &celestial.pos()) * &window.y_dir * window.scale
+                    + window.height as f64 / 2.);
 
-            if x_f64 > window.width as f64 || x_f64 < 0. || y_f64 > window.height as f64 || y_f64 < 0. {
+            if x_f64 < 0. || y_f64 < 0. {
                 continue;
             }
 
-            let (x, y) = (x_f64 as usize + window.x, y_f64 as usize + window.y);
+            let mut x = x_f64 as usize;
+            let mut y = y_f64 as usize;
+
+            if !window.inside(x, y) {
+                continue;
+            }
+
+            x += window.x;
+            y += window.y;
+
+            if !self.frame.inside(x, y) {
+                continue;
+            }
+
             if &char != "∘" || &self.frame.vec[y][x] == " " {
                 self.frame.vec[y][x] = char;
             }

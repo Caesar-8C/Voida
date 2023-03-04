@@ -13,6 +13,13 @@ impl Frame {
         }
     }
 
+    pub fn inside(&self, x: usize, y: usize) -> bool {
+        if x >= self.width || y >= self.height {
+            return false;
+        }
+        true
+    }
+
     pub fn fill(&mut self, val: String) {
         self.vec = vec![vec![val; self.width]; self.height];
     }
