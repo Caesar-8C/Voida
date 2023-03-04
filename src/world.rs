@@ -1,12 +1,12 @@
 pub mod celestials;
 pub mod config;
 
+use celestials::{Celestial, Celestials};
 use std::collections::HashMap;
 use std::time::Duration;
 use tokio::sync::watch;
 use tokio::sync::watch::{Receiver, Sender};
 use tokio::time::interval;
-use celestials::{Celestial, Celestials};
 
 const DELTA_T: f64 = 60. * 60.;
 
@@ -28,7 +28,9 @@ impl World {
         )
     }
 
-    pub fn from_config(celestials: Celestials) -> (Self, Receiver<HashMap<String, Celestial>>) {
+    pub fn from_config(
+        celestials: Celestials,
+    ) -> (Self, Receiver<HashMap<String, Celestial>>) {
         let (world_publisher, world_watch) = watch::channel(celestials.get());
         (
             Self {
@@ -39,7 +41,10 @@ impl World {
         )
     }
 
-    pub async fn spin(&mut self, simulation_period: Duration) {
+    pub async fn spin(
+        &mut self,
+        simulation_period: Duration,
+    ) -> Result<(), String> {
         let mut interval = interval(simulation_period);
 
         loop {
@@ -49,7 +54,7 @@ impl World {
 
             self.world_publisher
                 .send(self.celestials.get())
-                .unwrap();
+                .map_err(|e| format!("{}", e))?;
         }
     }
 

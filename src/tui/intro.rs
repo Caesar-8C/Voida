@@ -86,17 +86,17 @@ pub struct Intro {
 }
 
 impl Intro {
-    pub fn new(duration: Duration, fps: u32) -> Self {
-        let (x, y) = terminal_size().unwrap();
+    pub fn new(duration: Duration, fps: u32) -> Result<Self, String> {
+        let (x, y) = terminal_size().map_err(|e| format!("{}", e))?;
         let frame = Frame::new(x as usize, y as usize - 1);
         let particles = Vec::with_capacity(1000);
 
-        Self {
+        Ok(Self {
             frame,
             fps,
             duration,
             particles,
-        }
+        })
     }
 
     pub async fn run(&mut self) {
