@@ -3,6 +3,7 @@ mod intro;
 pub mod window;
 
 use crate::tui::frame::Frame;
+use crate::tui::intro::Intro;
 use crate::tui::window::Window;
 use crate::world::celestials::Celestial;
 use std::collections::HashMap;
@@ -10,7 +11,6 @@ use std::time::Duration;
 use termion::terminal_size;
 use tokio::sync::watch::Receiver;
 use tokio::time::interval;
-use crate::tui::intro::Intro;
 
 pub struct Tui {
     fps: u32,
@@ -24,31 +24,31 @@ impl Tui {
         world: Receiver<HashMap<String, Celestial>>,
         fps: u32,
         intro_secs: u64,
-    ) -> Self {
-        let (x, y) = terminal_size().unwrap();
+    ) -> Result<Self, String> {
+        let (x, y) = terminal_size().map_err(|e| format!("{}", e))?;
         let frame = Frame::new(x as usize, y as usize - 1);
 
         if intro_secs > 0 {
-            let mut intro = Intro::new(Duration::from_secs(intro_secs), fps);
+            let mut intro = Intro::new(Duration::from_secs(intro_secs), fps)?;
             intro.run().await;
         }
 
-        Self {
+        Ok(Self {
             fps,
             world,
             frame,
             windows: Vec::new(),
-        }
+        })
     }
 
-    pub async fn run(mut self) {
+    pub async fn run(mut self) -> Result<(), String> {
         let mut interval = interval(Duration::from_millis(
             (1. / self.fps as f64 * 1000.) as u64,
         ));
 
         loop {
             interval.tick().await;
-            let (x, y) = terminal_size().unwrap();
+            let (x, y) = terminal_size().map_err(|e| format!("{}", e))?;
             self.frame = Frame::new(x as usize, y as usize - 1);
 
             self.draw_frame();
