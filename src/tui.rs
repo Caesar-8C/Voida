@@ -78,11 +78,11 @@ impl Tui {
             let char = Self::get_symbol(&celestial.name());
 
             let x_f64 =
-                ((&celestial.pos() - &focus) * &window.x_dir * window.scale * 2.
-                    + window.width as f64 / 2.);
+                (&celestial.pos() - &focus) * &window.x_dir * window.scale * 2.
+                    + window.width as f64 / 2.;
             let y_f64 =
-                ((&focus - &celestial.pos()) * &window.y_dir * window.scale
-                    + window.height as f64 / 2.);
+                (&focus - &celestial.pos()) * &window.y_dir * window.scale
+                    + window.height as f64 / 2.;
 
             if x_f64 < 0. || y_f64 < 0. {
                 continue;
