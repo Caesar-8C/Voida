@@ -40,6 +40,8 @@ impl Tui {
 
         loop {
             interval.tick().await;
+            let (x, y) = terminal_size().unwrap();
+            self.frame = Frame::new(x as usize, y as usize - 1);
 
             self.draw_frame();
 
