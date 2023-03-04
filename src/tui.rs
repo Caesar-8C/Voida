@@ -1,116 +1,109 @@
-use crate::celestial::Celestial;
-use crate::Vec3;
+mod frame;
+pub mod window;
+
+use crate::tui::frame::Frame;
+use crate::tui::window::Window;
+use crate::world::celestials::Celestial;
 use std::collections::HashMap;
-use std::io::stdin;
 use std::time::Duration;
-use termion::event::Key;
-use termion::input::TermRead;
-use tokio::sync::watch;
-use tokio::sync::watch::{Receiver, Sender};
+use termion::terminal_size;
+use tokio::sync::watch::Receiver;
 use tokio::time::interval;
 
-async fn listen_keys(earth_view_sender: Sender<String>) {
-    let stdin = stdin();
-    let mut earth_view = "global".to_string();
-    for c in stdin.keys() {
-        match c.unwrap() {
-            Key::Char('v') => {
-                if earth_view == "global".to_string() {
-                    earth_view = "earth".to_string();
-                } else {
-                    earth_view = "global".to_string();
-                }
-            }
-            _ => (),
-        };
-        earth_view_sender.send(earth_view.clone()).unwrap();
-    }
-}
-
-pub struct TUI {
+pub struct Tui {
     fps: u32,
     world: Receiver<HashMap<String, Celestial>>,
-    view: Receiver<String>,
-    scales: HashMap<String, f64>,
+    frame: Frame,
+    windows: Vec<Window>,
 }
 
-impl TUI {
+impl Tui {
     pub async fn init(
         world: Receiver<HashMap<String, Celestial>>,
         fps: u32,
     ) -> Self {
-        let (user_input_tx, view) = watch::channel("global".to_string());
-        tokio::spawn(listen_keys(user_input_tx));
-
-        let mut scales = HashMap::new();
-        scales.insert("global".to_string(), 10_f64 / 10_f64.powi(11));
-        scales.insert("earth".to_string(), 10_f64 / 8_f64 / 10_f64.powi(8));
+        let (x, y) = terminal_size().unwrap();
+        let frame = Frame::new(x as usize, y as usize - 1);
 
         Self {
             fps,
             world,
-            view,
-            scales,
+            frame,
+            windows: Vec::new(),
         }
     }
 
-    pub async fn run(self) {
+    pub async fn run(mut self) {
         let mut interval = interval(Duration::from_millis(
             (1. / self.fps as f32 * 1000.) as u64,
         ));
 
         loop {
             interval.tick().await;
+            let (x, y) = terminal_size().unwrap();
+            self.frame = Frame::new(x as usize, y as usize - 1);
 
-            let world_copy = (*self.world.borrow()).clone();
-            let view: &str = &*self.view.borrow();
-            let focus = match view {
-                "global" => Vec3::default(),
-                "earth" => world_copy["Earth"].pos(),
-                _ => return,
-            };
+            self.draw_frame();
 
-            let mut map = self.construct_map();
-            self.draw_celestials(&mut map, world_copy, view, focus);
-
-            self.flush(&map);
+            self.flush();
         }
     }
 
-    fn construct_map(&self) -> Vec<Vec<String>> {
-        let mut map = vec![vec![" ".to_string(); 82]; 42];
-        for i in 0..82 {
-            map[41][i] = "-".to_string();
-            if i < 42 {
-                map[i][81] = "|".to_string();
+    pub fn add_window(&mut self, window: Window) {
+        self.windows.push(window);
+    }
+
+    fn draw_frame(&mut self) {
+        self.frame.fill("#".to_string());
+
+        for window in &self.windows.clone() {
+            self.draw_window(window);
+        }
+    }
+
+    fn draw_window(&mut self, window: &Window) {
+        for x in window.x..(window.x + window.width) {
+            for y in window.y..(window.y + window.height) {
+                if !self.frame.inside(x, y) {
+                    continue;
+                }
+                self.frame.vec[y][x] = " ".to_string();
             }
         }
-        map[41][81] = "/".to_string();
-        map
-    }
 
-    fn draw_celestials(
-        &self,
-        map: &mut Vec<Vec<String>>,
-        world: HashMap<String, Celestial>,
-        view: &str,
-        focus: Vec3,
-    ) {
-        for (_, celestial) in &world {
+        let world = &*self.world.borrow();
+        let focus = world[&window.focus].pos();
+
+        for celestial in world.values() {
             let char = Self::get_symbol(&celestial.name());
 
             let x_f64 =
-                (celestial.pos().x - focus.x) * self.scales[view] * 2. + 40.;
-            let y_f64 = (celestial.pos().y - focus.y) * self.scales[view] + 20.;
+                (&celestial.pos() - &focus) * &window.x_dir * window.scale * 2.
+                    + window.width as f64 / 2.;
+            let y_f64 =
+                (&focus - &celestial.pos()) * &window.y_dir * window.scale
+                    + window.height as f64 / 2.;
 
-            if x_f64 > 81. || x_f64 < 0. || y_f64 > 41. || y_f64 < 0. {
+            if x_f64 < 0. || y_f64 < 0. {
                 continue;
             }
 
-            let (x, y) = (x_f64 as usize, 40 - y_f64 as usize);
+            let mut x = x_f64 as usize;
+            let mut y = y_f64 as usize;
 
-            if char != "∘".to_string() || map[y][x] == " ".to_string() {
-                map[y][x] = char;
+            if !window.inside(x, y) {
+                continue;
+            }
+
+            x += window.x;
+            y += window.y;
+
+            if !self.frame.inside(x, y) {
+                continue;
+            }
+
+            if &char != "∘" || &self.frame.vec[y][x] == " " {
+                self.frame.vec[y][x] = char;
             }
         }
     }
@@ -124,9 +117,9 @@ impl TUI {
         }
     }
 
-    fn flush(&self, map: &Vec<Vec<String>>) {
+    fn flush(&self) {
         let mut st = "".to_string();
-        for first in map {
+        for first in &self.frame.vec {
             for second in first {
                 st += second;
             }
