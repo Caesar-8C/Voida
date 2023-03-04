@@ -7,12 +7,11 @@ use utils::Vec3;
 use world::celestials::Celestial;
 use crate::tui::Tui;
 use crate::tui::window;
-use crate::world::config::Config;
 use crate::world::World;
 
 #[tokio::main]
 async fn main() {
-    let config = Config::new_solar();
+    let config = world::config::new_solar();
     let (mut world, world_watch) = World::from_config(config);
 
     let mut tui = Tui::init(world_watch, 20).await;

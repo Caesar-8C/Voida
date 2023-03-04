@@ -7,7 +7,6 @@ use tokio::sync::watch;
 use tokio::sync::watch::{Receiver, Sender};
 use tokio::time::interval;
 use celestials::{Celestial, Celestials};
-use config::Config;
 
 const DELTA_T: f64 = 60. * 60.;
 
@@ -29,11 +28,11 @@ impl World {
         )
     }
 
-    pub fn from_config(config: Config) -> (Self, Receiver<HashMap<String, Celestial>>) {
-        let (world_publisher, world_watch) = watch::channel(config.celestials.get());
+    pub fn from_config(celestials: Celestials) -> (Self, Receiver<HashMap<String, Celestial>>) {
+        let (world_publisher, world_watch) = watch::channel(celestials.get());
         (
             Self {
-                celestials: config.celestials,
+                celestials,
                 world_publisher,
             },
             world_watch,
