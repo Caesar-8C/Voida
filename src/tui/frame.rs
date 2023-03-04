@@ -23,4 +23,15 @@ impl Frame {
     pub fn fill(&mut self, val: String) {
         self.vec = vec![vec![val; self.width]; self.height];
     }
+
+    pub fn flush(&self) {
+        let mut st = "".to_string();
+        for first in &self.vec {
+            for second in first {
+                st += second;
+            }
+            st += "\n";
+        }
+        print!("{}c{}", 27 as char, st);
+    }
 }
