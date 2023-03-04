@@ -1,4 +1,5 @@
 mod frame;
+mod intro;
 pub mod window;
 
 use crate::tui::frame::Frame;
@@ -9,6 +10,7 @@ use std::time::Duration;
 use termion::terminal_size;
 use tokio::sync::watch::Receiver;
 use tokio::time::interval;
+use crate::tui::intro::Intro;
 
 pub struct Tui {
     fps: u32,
@@ -21,9 +23,15 @@ impl Tui {
     pub async fn init(
         world: Receiver<HashMap<String, Celestial>>,
         fps: u32,
+        intro_secs: u64,
     ) -> Self {
         let (x, y) = terminal_size().unwrap();
         let frame = Frame::new(x as usize, y as usize - 1);
+
+        if intro_secs > 0 {
+            let mut intro = Intro::new(Duration::from_secs(intro_secs), fps);
+            intro.run().await;
+        }
 
         Self {
             fps,
@@ -35,7 +43,7 @@ impl Tui {
 
     pub async fn run(mut self) {
         let mut interval = interval(Duration::from_millis(
-            (1. / self.fps as f32 * 1000.) as u64,
+            (1. / self.fps as f64 * 1000.) as u64,
         ));
 
         loop {
@@ -45,7 +53,7 @@ impl Tui {
 
             self.draw_frame();
 
-            self.flush();
+            self.frame.flush();
         }
     }
 
@@ -115,16 +123,5 @@ impl Tui {
             "Moon" => "∘".to_string(),
             _ => "X".to_string(),
         }
-    }
-
-    fn flush(&self) {
-        let mut st = "".to_string();
-        for first in &self.frame.vec {
-            for second in first {
-                st += second;
-            }
-            st += "\n";
-        }
-        print!("{}c{}", 27 as char, st);
     }
 }
