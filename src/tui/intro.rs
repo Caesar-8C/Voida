@@ -1,8 +1,8 @@
+use std::fs::File;
 use crate::tui::frame::Frame;
 use rand::Rng;
-use rodio::{OutputStream, Sink, Source};
+use rodio::{Decoder, OutputStream, Sink};
 use std::time::Duration;
-use rodio::source::SineWave;
 use termion::terminal_size;
 use tokio::time::{interval, Instant};
 
@@ -102,15 +102,9 @@ impl Intro {
     }
 
     pub async fn run(&mut self) -> Result<(), String> {
-        let (_stream, handle) =
-            OutputStream::try_default().map_err(|e| format!("{}", e))?;
-        let sink = Sink::try_new(&handle).map_err(|e| format!("{}", e))?;
-        let source1 = SineWave::new(440.);
-        let source2 = SineWave::new(440.*5./4.);
-        let source3 = SineWave::new(440.*5./4.*6./5.);
-        sink.append(source1.mix(source2).mix(source3));
-
         let start = Instant::now();
+
+        tokio::spawn(Self::play_sound(start, self.duration));
 
         Particle::spawn_into(
             &mut self.particles,
@@ -173,6 +167,21 @@ impl Intro {
                 let index = i * (NAME_X + 2) + j;
                 self.frame.vec[i + start_y][j + start_x] =
                     name[index].to_string();
+            }
+        }
+    }
+
+    async fn play_sound(start: Instant, duration: Duration) -> Result<(), String> {
+        let (_stream, handle) =
+            OutputStream::try_default().map_err(|e| format!("{}", e))?;
+        let sink = Sink::try_new(&handle).map_err(|e| format!("{}", e))?;
+        let source_file = File::open("media/sound/intro.wav").map_err(|e| format!("{}", e))?;
+        let source = Decoder::new(source_file).map_err(|e| format!("{}", e))?;
+        sink.append(source);
+
+        loop {
+            if start.elapsed() > duration {
+                return Ok(());
             }
         }
     }
