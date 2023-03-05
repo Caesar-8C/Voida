@@ -1,6 +1,7 @@
 mod tui;
 mod utils;
 mod world;
+mod simulation;
 
 use crate::tui::window;
 use crate::tui::Tui;
@@ -8,11 +9,14 @@ use crate::world::World;
 use std::time::Duration;
 use utils::Vec3;
 use world::celestials::Celestial;
+use crate::simulation::Simulation;
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
-    let config = world::config::new_solar();
-    let (mut world, world_watch) = World::from_config(config);
+    let delta_t = 60_f64 * 60.;
+    let world = World::new_solar(delta_t);
+    let simulation_period = Duration::from_millis(10);
+    let (mut simulation, world_watch) = Simulation::new(world, simulation_period);
 
     let mut tui = Tui::init(world_watch, 20, 7).await?;
     tui.add_window(window::sun_standard());
@@ -20,6 +24,5 @@ async fn main() -> Result<(), String> {
     tui.add_window(window::moon_from_side());
     tokio::spawn(tui.run());
 
-    let simulation_period = Duration::from_millis(10);
-    world.spin(simulation_period).await
+    simulation.spin().await
 }

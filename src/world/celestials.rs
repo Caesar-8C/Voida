@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 const G: f64 = 6.6743_f64 * 0.000_000_000_01;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Celestials(HashMap<String, Celestial>);
 
 impl Celestials {

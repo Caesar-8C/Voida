@@ -5,23 +5,22 @@ pub mod window;
 use crate::tui::frame::Frame;
 use crate::tui::intro::Intro;
 use crate::tui::window::Window;
-use crate::world::celestials::Celestial;
-use std::collections::HashMap;
 use std::time::Duration;
 use termion::terminal_size;
 use tokio::sync::watch::Receiver;
 use tokio::time::interval;
+use crate::World;
 
 pub struct Tui {
     fps: u32,
-    world: Receiver<HashMap<String, Celestial>>,
+    world: Receiver<World>,
     frame: Frame,
     windows: Vec<Window>,
 }
 
 impl Tui {
     pub async fn init(
-        world: Receiver<HashMap<String, Celestial>>,
+        world: Receiver<World>,
         fps: u32,
         intro_secs: u64,
     ) -> Result<Self, String> {
@@ -79,7 +78,7 @@ impl Tui {
             }
         }
 
-        let world = &*self.world.borrow();
+        let world = &self.world.borrow().get();
         let focus = world[&window.focus].pos();
 
         for celestial in world.values() {
@@ -110,7 +109,7 @@ impl Tui {
                 continue;
             }
 
-            if &char != "∘" || &self.frame.vec[y][x] == " " {
+            if (&char != "∘" && &char != "I") || &self.frame.vec[y][x] == " " {
                 self.frame.vec[y][x] = char;
             }
         }

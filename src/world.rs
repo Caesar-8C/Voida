@@ -3,62 +3,26 @@ pub mod config;
 
 use celestials::{Celestial, Celestials};
 use std::collections::HashMap;
-use std::time::Duration;
-use tokio::sync::watch;
-use tokio::sync::watch::{Receiver, Sender};
-use tokio::time::interval;
 
-const DELTA_T: f64 = 60. * 60.;
-
+#[derive(Clone, Debug)]
 pub struct World {
     celestials: Celestials,
-    world_publisher: Sender<HashMap<String, Celestial>>,
+    delta_t: f64,
 }
 
 impl World {
-    pub fn _new() -> (Self, Receiver<HashMap<String, Celestial>>) {
-        let celestials = Celestials::new();
-        let (world_publisher, world_watch) = watch::channel(celestials.get());
-        (
-            Self {
-                celestials,
-                world_publisher,
-            },
-            world_watch,
-        )
-    }
-
-    pub fn from_config(
-        celestials: Celestials,
-    ) -> (Self, Receiver<HashMap<String, Celestial>>) {
-        let (world_publisher, world_watch) = watch::channel(celestials.get());
-        (
-            Self {
-                celestials,
-                world_publisher,
-            },
-            world_watch,
-        )
-    }
-
-    pub async fn spin(
-        &mut self,
-        simulation_period: Duration,
-    ) -> Result<(), String> {
-        let mut interval = interval(simulation_period);
-
-        loop {
-            interval.tick().await;
-
-            self.celestials.update(DELTA_T);
-
-            self.world_publisher
-                .send(self.celestials.get())
-                .map_err(|e| format!("{}", e))?;
+    pub fn new_solar(delta_t: f64) -> Self {
+        Self {
+            celestials: config::new_solar(),
+            delta_t,
         }
     }
 
-    pub fn _add_celestial(&mut self, new_celestial: Celestial) {
-        self.celestials.add(new_celestial);
+    pub fn get(&self) -> HashMap<String, Celestial>{
+        self.celestials.get()
+    }
+
+    pub fn update(&mut self) {
+        self.celestials.update(self.delta_t);
     }
 }
