@@ -1,5 +1,10 @@
 use std::ops;
 
+pub trait Body {
+    fn name(&self) -> String;
+    fn pos(&self) -> Vec3;
+}
+
 #[derive(Clone, Debug)]
 pub struct Vec3 {
     pub x: f64,

@@ -22,6 +22,7 @@ async fn main() -> Result<(), String> {
     tui.add_window(window::sun_standard());
     tui.add_window(window::earth_standard());
     tui.add_window(window::moon_from_side());
+    tui.add_window(window::iss());
     tokio::spawn(tui.run());
 
     simulation.spin().await

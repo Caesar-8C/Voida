@@ -1,3 +1,4 @@
+use crate::utils::Body;
 use crate::Vec3;
 
 #[derive(Clone, Debug)]
@@ -18,14 +19,6 @@ impl Spaceship {
         }
     }
 
-    pub fn _name(&self) -> String {
-        self.name.clone()
-    }
-
-    pub fn pos(&self) -> Vec3 {
-        self.pos.clone()
-    }
-
     pub fn _mass(&self) -> f64 {
         self.mass
     }
@@ -33,5 +26,15 @@ impl Spaceship {
     pub fn apply_gravity(&mut self, acceleration: Vec3, delta_t: f64) {
         self.vel += acceleration * delta_t;
         self.pos += &self.vel * delta_t;
+    }
+}
+
+impl Body for Spaceship {
+    fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    fn pos(&self) -> Vec3 {
+        self.pos.clone()
     }
 }

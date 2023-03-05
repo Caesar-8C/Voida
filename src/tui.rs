@@ -2,6 +2,7 @@ mod frame;
 mod intro;
 pub mod window;
 
+use std::collections::HashMap;
 use crate::tui::frame::Frame;
 use crate::tui::intro::Intro;
 use crate::tui::window::Window;
@@ -10,6 +11,7 @@ use termion::terminal_size;
 use tokio::sync::watch::Receiver;
 use tokio::time::interval;
 use crate::World;
+use crate::utils::Body;
 
 pub struct Tui {
     fps: u32,
@@ -63,12 +65,14 @@ impl Tui {
     fn draw_frame(&mut self) {
         self.frame.fill("#".to_string());
 
+        let world = &self.world.borrow().get();
+
         for window in &self.windows.clone() {
-            self.draw_window(window);
+            self.draw_window(window, world);
         }
     }
 
-    fn draw_window(&mut self, window: &Window) {
+    fn draw_window(&mut self, window: &Window, world: &HashMap<String, Box<dyn Body>>) {
         for x in window.x..(window.x + window.width) {
             for y in window.y..(window.y + window.height) {
                 if !self.frame.inside(x, y) {
@@ -78,17 +82,16 @@ impl Tui {
             }
         }
 
-        let world = &self.world.borrow().get();
         let focus = world[&window.focus].pos();
 
-        for celestial in world.values() {
-            let char = Self::get_symbol(&celestial.name());
+        for body in world.values() {
+            let char = Self::get_symbol(&body.name());
 
             let x_f64 =
-                (&celestial.pos() - &focus) * &window.x_dir * window.scale * 2.
+                (&body.pos() - &focus) * &window.x_dir * window.scale * 2.
                     + window.width as f64 / 2.;
             let y_f64 =
-                (&focus - &celestial.pos()) * &window.y_dir * window.scale
+                (&focus - &body.pos()) * &window.y_dir * window.scale
                     + window.height as f64 / 2.;
 
             if x_f64 < 0. || y_f64 < 0. {
@@ -120,6 +123,7 @@ impl Tui {
             "Sun" => "O".to_string(),
             "Earth" => "o".to_string(),
             "Moon" => "∘".to_string(),
+            "ISS" => "I".to_string(),
             _ => "X".to_string(),
         }
     }
