@@ -55,15 +55,17 @@ pub struct Celestial {
     mass: f64,
     pos: Vec3,
     vel: Vec3,
+    rad: f64,
 }
 
 impl Celestial {
-    pub fn new(name: String, mass: f64, pos: Vec3, vel: Vec3) -> Self {
+    pub fn new(name: String, mass: f64, pos: Vec3, vel: Vec3, rad: f64) -> Self {
         Self {
             name,
             mass,
             pos,
             vel,
+            rad,
         }
     }
 
@@ -77,6 +79,10 @@ impl Celestial {
 
     pub fn mass(&self) -> f64 {
         self.mass
+    }
+
+    pub fn rad(&self) -> f64 {
+        self.rad
     }
 
     pub fn apply_gravity(&mut self, acceleration: Vec3, delta_t: f64) {
