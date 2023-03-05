@@ -64,10 +64,11 @@ pub fn iss() -> Spaceship {
 
     let earth_pos = &sun_pos + Vec3 { x: 1.521_f64 * 10_f64.powi(11), y: 0., z: 0., };
     let earth_vel = &sun_vel + Vec3 { x: 0., y: 29290., z: 0., };
+    let earth_rad = 6.371_f64 * 10_f64.powi(6);
 
     let iss_name = "ISS".to_string();
     let iss_mass = 4.19725_f64 * 10_f64.powi(5);
-    let iss_pos = &earth_pos + Vec3 { x: 422_000., y: 0., z: 0. };
+    let iss_pos = &earth_pos + Vec3 { x: 422_000.+earth_rad, y: 0., z: 0. };
     let iss_vel = &earth_vel + Vec3 { x: 0., y: 7660., z: 0. };
 
     Spaceship::new(

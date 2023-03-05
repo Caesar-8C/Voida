@@ -1,4 +1,4 @@
-use crate::utils::{Body, NormVec3, Vec3};
+use crate::utils::{NormVec3, Vec3};
 use std::collections::HashMap;
 
 const G: f64 = 6.6743_f64 * 0.000_000_000_01;
@@ -69,6 +69,14 @@ impl Celestial {
         }
     }
 
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    pub fn pos(&self) -> Vec3 {
+        self.pos.clone()
+    }
+
     pub fn mass(&self) -> f64 {
         self.mass
     }
@@ -83,12 +91,3 @@ impl Celestial {
     }
 }
 
-impl Body for Celestial {
-    fn name(&self) -> String {
-        self.name.clone()
-    }
-
-    fn pos(&self) -> Vec3 {
-        self.pos.clone()
-    }
-}

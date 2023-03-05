@@ -13,9 +13,9 @@ use crate::simulation::Simulation;
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
-    let delta_t = 60_f64 * 60.;
+    let delta_t = 60_f64;// * 60.;
     let world = World::new_solar(delta_t);
-    let simulation_period = Duration::from_millis(10);
+    let simulation_period = Duration::from_millis(5);
     let (mut simulation, world_watch) = Simulation::new(world, simulation_period);
 
     let mut tui = Tui::init(world_watch, 20, 7).await?;

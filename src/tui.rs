@@ -10,8 +10,8 @@ use std::time::Duration;
 use termion::terminal_size;
 use tokio::sync::watch::Receiver;
 use tokio::time::interval;
-use crate::World;
-use crate::utils::Body;
+use crate::{Celestial, World};
+use crate::world::Body;
 
 pub struct Tui {
     fps: u32,
@@ -72,7 +72,7 @@ impl Tui {
         }
     }
 
-    fn draw_window(&mut self, window: &Window, world: &HashMap<String, Box<dyn Body>>) {
+    fn draw_window(&mut self, window: &Window, world: &HashMap<String, Body>) {
         for x in window.x..(window.x + window.width) {
             for y in window.y..(window.y + window.height) {
                 if !self.frame.inside(x, y) {
@@ -82,16 +82,25 @@ impl Tui {
             }
         }
 
-        let focus = world[&window.focus].pos();
+        let focus = match &world[&window.focus] {
+            Body::Celestial(c) => {
+                self.draw_focus_body(c, window);
+                c.pos()
+            },
+            Body::Spaceship(ss) => ss.pos(),
+        };
 
         for body in world.values() {
-            let char = Self::get_symbol(&body.name());
+            let (name, pos) = match body {
+                Body::Celestial(c) => (c.name(), c.pos()),
+                Body::Spaceship(ss) => (ss.name(), ss.pos()),
+            };
 
             let x_f64 =
-                (&body.pos() - &focus) * &window.x_dir * window.scale * 2.
+                (&pos - &focus) * &window.x_dir * window.scale * 2.
                     + window.width as f64 / 2.;
             let y_f64 =
-                (&focus - &body.pos()) * &window.y_dir * window.scale
+                (&focus - &pos) * &window.y_dir * window.scale
                     + window.height as f64 / 2.;
 
             if x_f64 < 0. || y_f64 < 0. {
@@ -112,8 +121,27 @@ impl Tui {
                 continue;
             }
 
+            let char = Self::get_symbol(&name);
+
             if (&char != "∘" && &char != "I") || &self.frame.vec[y][x] == " " {
                 self.frame.vec[y][x] = char;
+            }
+        }
+    }
+
+    fn draw_focus_body(&mut self, celestial: &Celestial, window: &Window) {
+        let char = Self::get_symbol(&celestial.name());
+
+        if window.scale * celestial.rad() > 1. {
+            for i in 0..(window.width) {
+                for j in 0..(window.height) {
+                    let x = ((i as f64 - (window.width as f64 / 2.))/2.).abs();
+                    let y = (j as f64 - (window.height as f64 / 2.)).abs();
+                    let dist = (x*x + y*y).sqrt() / window.scale;
+                    if dist < celestial.rad() {
+                        self.frame.vec[j+window.y][i+window.x] = char.clone();
+                    }
+                }
             }
         }
     }
