@@ -27,6 +27,8 @@ jobs:
     if: github.ref == 'refs/heads/master'
     steps:
     - uses: actions/checkout@v3
+    - name: Install libs
+      run: sudo apt install librust-alsa-sys-dev
     - name: Clippy
       run: cargo clippy --verbose -- -D warnings
     - name: Release Build
