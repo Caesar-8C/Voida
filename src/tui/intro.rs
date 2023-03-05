@@ -1,7 +1,7 @@
-use std::fs::File;
 use crate::tui::frame::Frame;
 use rand::Rng;
 use rodio::{Decoder, OutputStream, Sink};
+use std::fs::File;
 use std::time::Duration;
 use termion::terminal_size;
 use tokio::time::{interval, Instant};
@@ -171,11 +171,15 @@ impl Intro {
         }
     }
 
-    async fn play_sound(start: Instant, duration: Duration) -> Result<(), String> {
+    async fn play_sound(
+        start: Instant,
+        duration: Duration,
+    ) -> Result<(), String> {
         let (_stream, handle) =
             OutputStream::try_default().map_err(|e| format!("{}", e))?;
         let sink = Sink::try_new(&handle).map_err(|e| format!("{}", e))?;
-        let source_file = File::open("media/sound/intro.wav").map_err(|e| format!("{}", e))?;
+        let source_file = File::open("media/sound/intro.wav")
+            .map_err(|e| format!("{}", e))?;
         let source = Decoder::new(source_file).map_err(|e| format!("{}", e))?;
         sink.append(source);
 

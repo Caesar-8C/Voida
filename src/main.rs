@@ -1,22 +1,29 @@
+mod simulation;
 mod tui;
 mod utils;
 mod world;
-mod simulation;
 
+use crate::simulation::Simulation;
 use crate::tui::window;
 use crate::tui::Tui;
-use crate::world::World;
+use crate::world::{config, World};
+use std::collections::HashMap;
 use std::time::Duration;
 use utils::Vec3;
 use world::celestials::Celestial;
-use crate::simulation::Simulation;
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
-    let delta_t = 60_f64;// * 60.;
-    let world = World::new_solar(delta_t);
-    let simulation_period = Duration::from_millis(5);
-    let (mut simulation, world_watch) = Simulation::new(world, simulation_period);
+    let delta_t = 60_f64 * 60.;
+    let celestials = config::new_solar();
+    let mut spaceships = HashMap::new();
+    let spaceship = config::iss();
+    println!("Make clippy happy: {}", spaceship.mass());
+    // spaceships.insert(spaceship.name(), spaceship);
+    let world = World::new(celestials, spaceships, delta_t);
+    let simulation_period = Duration::from_millis(10);
+    let (mut simulation, world_watch) =
+        Simulation::new(world, simulation_period);
 
     let mut tui = Tui::init(world_watch, 20, 7).await?;
     tui.add_window(window::sun_standard());

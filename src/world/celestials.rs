@@ -8,9 +8,7 @@ pub struct Celestials(HashMap<String, Celestial>);
 
 impl Celestials {
     pub fn new() -> Self {
-        Self (
-            HashMap::new(),
-        )
+        Self(HashMap::new())
     }
 
     pub fn add(&mut self, new_celestial: Celestial) {
@@ -59,7 +57,13 @@ pub struct Celestial {
 }
 
 impl Celestial {
-    pub fn new(name: String, mass: f64, pos: Vec3, vel: Vec3, rad: f64) -> Self {
+    pub fn new(
+        name: String,
+        mass: f64,
+        pos: Vec3,
+        vel: Vec3,
+        rad: f64,
+    ) -> Self {
         Self {
             name,
             mass,
@@ -90,4 +94,3 @@ impl Celestial {
         self.pos += &self.vel * delta_t;
     }
 }
-

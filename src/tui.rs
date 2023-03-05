@@ -2,16 +2,16 @@ mod frame;
 mod intro;
 pub mod window;
 
-use std::collections::HashMap;
 use crate::tui::frame::Frame;
 use crate::tui::intro::Intro;
 use crate::tui::window::Window;
+use crate::world::Body;
+use crate::{Celestial, World};
+use std::collections::HashMap;
 use std::time::Duration;
 use termion::terminal_size;
 use tokio::sync::watch::Receiver;
 use tokio::time::interval;
-use crate::{Celestial, World};
-use crate::world::Body;
 
 pub struct Tui {
     fps: u32,
@@ -86,7 +86,7 @@ impl Tui {
             Body::Celestial(c) => {
                 self.draw_focus_body(c, window);
                 c.pos()
-            },
+            }
             Body::Spaceship(ss) => ss.pos(),
         };
 
@@ -96,12 +96,10 @@ impl Tui {
                 Body::Spaceship(ss) => (ss.name(), ss.pos()),
             };
 
-            let x_f64 =
-                (&pos - &focus) * &window.x_dir * window.scale * 2.
-                    + window.width as f64 / 2.;
-            let y_f64 =
-                (&focus - &pos) * &window.y_dir * window.scale
-                    + window.height as f64 / 2.;
+            let x_f64 = (&pos - &focus) * &window.x_dir * window.scale * 2.
+                + window.width as f64 / 2.;
+            let y_f64 = (&focus - &pos) * &window.y_dir * window.scale
+                + window.height as f64 / 2.;
 
             if x_f64 < 0. || y_f64 < 0. {
                 continue;
@@ -135,11 +133,12 @@ impl Tui {
         if window.scale * celestial.rad() > 1. {
             for i in 0..(window.width) {
                 for j in 0..(window.height) {
-                    let x = ((i as f64 - (window.width as f64 / 2.))/2.).abs();
+                    let x = ((i as f64 - (window.width as f64 / 2.)) / 2.).abs();
                     let y = (j as f64 - (window.height as f64 / 2.)).abs();
-                    let dist = (x*x + y*y).sqrt() / window.scale;
+                    let dist = (x * x + y * y).sqrt() / window.scale;
                     if dist < celestial.rad() {
-                        self.frame.vec[j+window.y][i+window.x] = char.clone();
+                        self.frame.vec[j + window.y][i + window.x] =
+                            char.clone();
                     }
                 }
             }

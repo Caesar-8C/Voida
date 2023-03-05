@@ -2,10 +2,10 @@ pub mod celestials;
 pub mod config;
 pub mod spaceship;
 
+use crate::world::spaceship::Spaceship;
+use crate::Celestial;
 use celestials::Celestials;
 use std::collections::HashMap;
-use crate::Celestial;
-use crate::world::spaceship::Spaceship;
 
 pub enum Body {
     Celestial(Celestial),
@@ -20,13 +20,13 @@ pub struct World {
 }
 
 impl World {
-    pub fn new_solar(delta_t: f64) -> Self {
-        let mut spaceships = HashMap::new();
-        let spaceship = config::iss();
-        println!("Make clippy happy: {}", spaceship.mass());
-        spaceships.insert(spaceship.name(), spaceship);
+    pub fn new(
+        celestials: Celestials,
+        spaceships: HashMap<String, Spaceship>,
+        delta_t: f64,
+    ) -> Self {
         Self {
-            celestials: config::new_solar(),
+            celestials,
             spaceships,
             delta_t,
         }
