@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name: Install libs
+      run: sudo apt install librust-alsa-sys-dev
     - name: Build
       run: cargo build --verbose
     - name: Clippy
