@@ -1,6 +1,8 @@
 use crate::tui::frame::Frame;
 use rand::Rng;
+use rodio::{OutputStream, Sink, Source};
 use std::time::Duration;
+use rodio::source::SineWave;
 use termion::terminal_size;
 use tokio::time::{interval, Instant};
 
@@ -99,7 +101,15 @@ impl Intro {
         })
     }
 
-    pub async fn run(&mut self) {
+    pub async fn run(&mut self) -> Result<(), String> {
+        let (_stream, handle) =
+            OutputStream::try_default().map_err(|e| format!("{}", e))?;
+        let sink = Sink::try_new(&handle).map_err(|e| format!("{}", e))?;
+        let source1 = SineWave::new(440.);
+        let source2 = SineWave::new(440.*5./4.);
+        let source3 = SineWave::new(440.*5./4.*6./5.);
+        sink.append(source1.mix(source2).mix(source3));
+
         let start = Instant::now();
 
         Particle::spawn_into(
@@ -135,6 +145,7 @@ impl Intro {
                 break;
             }
         }
+        Ok(())
     }
 
     fn draw_particles(&mut self) {
@@ -152,13 +163,16 @@ impl Intro {
 
     fn draw_logo(&mut self) {
         let name: Vec<char> = NAME.to_string().chars().collect();
-        let start_x = (self.frame.width as f64 / 2. - NAME_X as f64 / 2.) as usize;
-        let start_y = (self.frame.height as f64 / 2. - NAME_Y as f64 / 2.) as usize;
+        let start_x =
+            (self.frame.width as f64 / 2. - NAME_X as f64 / 2.) as usize;
+        let start_y =
+            (self.frame.height as f64 / 2. - NAME_Y as f64 / 2.) as usize;
 
         for i in 0..NAME_Y {
             for j in 0..NAME_X {
                 let index = i * (NAME_X + 2) + j;
-                self.frame.vec[i + start_y][j + start_x] = name[index].to_string();
+                self.frame.vec[i + start_y][j + start_x] =
+                    name[index].to_string();
             }
         }
     }

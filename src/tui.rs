@@ -30,7 +30,7 @@ impl Tui {
 
         if intro_secs > 0 {
             let mut intro = Intro::new(Duration::from_secs(intro_secs), fps)?;
-            intro.run().await;
+            intro.run().await?;
         }
 
         Ok(Self {
