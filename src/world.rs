@@ -1,64 +1,54 @@
 pub mod celestials;
 pub mod config;
+pub mod spaceship;
 
-use celestials::{Celestial, Celestials};
+use celestials::Celestials;
 use std::collections::HashMap;
-use std::time::Duration;
-use tokio::sync::watch;
-use tokio::sync::watch::{Receiver, Sender};
-use tokio::time::interval;
+use crate::Celestial;
+use crate::world::spaceship::Spaceship;
 
-const DELTA_T: f64 = 60. * 60.;
+pub enum Body {
+    Celestial(Celestial),
+    Spaceship(Spaceship),
+}
 
+#[derive(Clone, Debug)]
 pub struct World {
     celestials: Celestials,
-    world_publisher: Sender<HashMap<String, Celestial>>,
+    spaceships: HashMap<String, Spaceship>,
+    delta_t: f64,
 }
 
 impl World {
-    pub fn _new() -> (Self, Receiver<HashMap<String, Celestial>>) {
-        let celestials = Celestials::new();
-        let (world_publisher, world_watch) = watch::channel(celestials.get());
-        (
-            Self {
-                celestials,
-                world_publisher,
-            },
-            world_watch,
-        )
-    }
-
-    pub fn from_config(
-        celestials: Celestials,
-    ) -> (Self, Receiver<HashMap<String, Celestial>>) {
-        let (world_publisher, world_watch) = watch::channel(celestials.get());
-        (
-            Self {
-                celestials,
-                world_publisher,
-            },
-            world_watch,
-        )
-    }
-
-    pub async fn spin(
-        &mut self,
-        simulation_period: Duration,
-    ) -> Result<(), String> {
-        let mut interval = interval(simulation_period);
-
-        loop {
-            interval.tick().await;
-
-            self.celestials.update(DELTA_T);
-
-            self.world_publisher
-                .send(self.celestials.get())
-                .map_err(|e| format!("{}", e))?;
+    pub fn new_solar(delta_t: f64) -> Self {
+        let mut spaceships = HashMap::new();
+        let spaceship = config::iss();
+        println!("Make clippy happy: {}", spaceship.mass());
+        spaceships.insert(spaceship.name(), spaceship);
+        Self {
+            celestials: config::new_solar(),
+            spaceships,
+            delta_t,
         }
     }
 
-    pub fn _add_celestial(&mut self, new_celestial: Celestial) {
-        self.celestials.add(new_celestial);
+    pub fn get(&self) -> HashMap<String, Body> {
+        let mut res: HashMap<String, Body> = HashMap::new();
+        for (key, val) in self.celestials.get() {
+            res.insert(key, Body::Celestial(val));
+        }
+        for (key, val) in self.spaceships.clone() {
+            res.insert(key, Body::Spaceship(val));
+        }
+        res
+    }
+
+    pub fn update(&mut self) {
+        for spaceship in self.spaceships.values_mut() {
+            let a = self.celestials.get_global_acceleration(spaceship.pos());
+            spaceship.apply_gravity(a, self.delta_t);
+        }
+
+        self.celestials.update(self.delta_t);
     }
 }

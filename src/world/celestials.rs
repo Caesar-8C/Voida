@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 const G: f64 = 6.6743_f64 * 0.000_000_000_01;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Celestials(HashMap<String, Celestial>);
 
 impl Celestials {
@@ -55,15 +55,17 @@ pub struct Celestial {
     mass: f64,
     pos: Vec3,
     vel: Vec3,
+    rad: f64,
 }
 
 impl Celestial {
-    pub fn new(name: String, mass: f64, pos: Vec3, vel: Vec3) -> Self {
+    pub fn new(name: String, mass: f64, pos: Vec3, vel: Vec3, rad: f64) -> Self {
         Self {
             name,
             mass,
             pos,
             vel,
+            rad,
         }
     }
 
@@ -79,8 +81,13 @@ impl Celestial {
         self.mass
     }
 
+    pub fn rad(&self) -> f64 {
+        self.rad
+    }
+
     pub fn apply_gravity(&mut self, acceleration: Vec3, delta_t: f64) {
         self.vel += acceleration * delta_t;
         self.pos += &self.vel * delta_t;
     }
 }
+
