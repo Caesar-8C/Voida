@@ -81,6 +81,10 @@ impl Celestial {
         self.pos.clone()
     }
 
+    pub fn vel(&self) -> Vec3 {
+        self.vel.clone()
+    }
+
     pub fn mass(&self) -> f64 {
         self.mass
     }
