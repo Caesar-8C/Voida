@@ -50,7 +50,7 @@ impl Tui {
         loop {
             interval.tick().await;
             let (x, y) = terminal_size().map_err(|e| format!("{}", e))?;
-            self.frame = Frame::new(x as usize, y as usize - 1);
+            self.frame.resize(x as usize, y as usize - 1);
 
             self.draw_frame();
 

@@ -13,6 +13,11 @@ impl Frame {
         }
     }
 
+    pub fn resize(&mut self, width: usize, height: usize) {
+        self.width = width;
+        self.height = height;
+    }
+
     pub fn inside(&self, x: usize, y: usize) -> bool {
         if x >= self.width || y >= self.height {
             return false;

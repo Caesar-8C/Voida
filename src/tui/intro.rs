@@ -120,6 +120,8 @@ impl Intro {
 
         loop {
             interval.tick().await;
+            let (x, y) = terminal_size().map_err(|e| format!("{}", e))?;
+            self.frame.resize(x as usize, y as usize - 1);
             self.frame.fill(" ".to_string());
 
             Particle::spawn_into(
@@ -167,8 +169,10 @@ impl Intro {
         for i in 0..NAME_Y {
             for j in 0..NAME_X {
                 let index = i * (NAME_X + 2) + j;
-                self.frame.vec[i + start_y][j + start_x] =
-                    name[index].to_string();
+                if self.frame.inside(j + start_x, i + start_y) {
+                    self.frame.vec[i + start_y][j + start_x] =
+                        name[index].to_string();
+                }
             }
         }
     }
