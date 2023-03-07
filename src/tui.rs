@@ -137,8 +137,12 @@ impl Tui {
                     let y = (j as f64 - (window.height as f64 / 2.)).abs();
                     let dist = (x * x + y * y).sqrt() / window.scale;
                     if dist < celestial.rad() {
-                        self.frame.vec[j + window.y][i + window.x] =
-                            char.clone();
+                        let frame_x = i + window.x;
+                        let frame_y = j + window.y;
+                        if self.frame.inside(frame_x, frame_y) {
+                            self.frame.vec[j + window.y][i + window.x] =
+                                char.clone();
+                        }
                     }
                 }
             }
