@@ -143,16 +143,18 @@ impl Intro {
     }
 
     fn draw_particles(&mut self) {
-        for p in &mut self.particles {
+        self.particles.retain_mut(|p|
             if p.x < 0.
                 || p.y < 0.
                 || !self.frame.inside(p.x as usize, p.y as usize)
             {
-                continue;
+                false
+            } else {
+                self.frame.vec[p.y as usize][p.x as usize] = p.symbol.clone();
+                p.fly();
+                true
             }
-            self.frame.vec[p.y as usize][p.x as usize] = p.symbol.clone();
-            p.fly();
-        }
+        );
     }
 
     fn draw_logo(&mut self) {

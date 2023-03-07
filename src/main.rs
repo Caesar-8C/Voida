@@ -18,8 +18,7 @@ async fn main() -> Result<(), String> {
     let celestials = config::new_solar();
     let mut spaceships = HashMap::new();
     let spaceship = config::iss();
-    println!("Make clippy happy: {}", spaceship.mass());
-    // spaceships.insert(spaceship.name(), spaceship);
+    spaceships.insert(spaceship.name(), spaceship);
     let world = World::new(celestials, spaceships, delta_t);
     let simulation_period = Duration::from_millis(10);
     let (mut simulation, world_watch) =
