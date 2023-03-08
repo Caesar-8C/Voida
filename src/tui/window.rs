@@ -13,7 +13,13 @@ pub struct Window {
 }
 
 impl Window {
-    pub fn inside(&self, x: usize, y: usize) -> bool {
+    pub fn inside(&self, x_f64: f64, y_f64: f64) -> bool {
+        if x_f64 < 0. || y_f64 < 0. {
+            return false;
+        }
+
+        let x = x_f64 as usize;
+        let y = y_f64 as usize;
         if x >= self.width || y >= self.height {
             return false;
         }

@@ -75,10 +75,7 @@ impl Tui {
     fn draw_window(&mut self, window: &Window, world: &HashMap<String, Body>) {
         for x in window.x..(window.x + window.width) {
             for y in window.y..(window.y + window.height) {
-                if !self.frame.inside(x, y) {
-                    continue;
-                }
-                self.frame.vec[y][x] = " ".to_string();
+                self.frame.try_set_usize(x, y, " ".to_string());
             }
         }
 
@@ -96,34 +93,20 @@ impl Tui {
                 Body::Spaceship(ss) => (ss.name(), ss.pos()),
             };
 
-            let x_f64 = (&pos - &focus) * &window.x_dir * window.scale * 2.
+            let mut x = (&pos - &focus) * &window.x_dir * window.scale * 2.
                 + window.width as f64 / 2.;
-            let y_f64 = (&focus - &pos) * &window.y_dir * window.scale
+            let mut y = (&focus - &pos) * &window.y_dir * window.scale
                 + window.height as f64 / 2.;
-
-            if x_f64 < 0. || y_f64 < 0. {
-                continue;
-            }
-
-            let mut x = x_f64 as usize;
-            let mut y = y_f64 as usize;
 
             if !window.inside(x, y) {
                 continue;
             }
 
-            x += window.x;
-            y += window.y;
-
-            if !self.frame.inside(x, y) {
-                continue;
-            }
+            x += window.x as f64;
+            y += window.y as f64;
 
             let char = Self::get_symbol(&name);
-
-            if (&char != "∘" && &char != "I") || &self.frame.vec[y][x] == " " {
-                self.frame.vec[y][x] = char;
-            }
+            self.frame.try_set(x, y, char);
         }
     }
 
@@ -137,12 +120,7 @@ impl Tui {
                     let y = (j as f64 - (window.height as f64 / 2.)).abs();
                     let dist = (x * x + y * y).sqrt() / window.scale;
                     if dist < celestial.rad() {
-                        let frame_x = i + window.x;
-                        let frame_y = j + window.y;
-                        if self.frame.inside(frame_x, frame_y) {
-                            self.frame.vec[j + window.y][i + window.x] =
-                                char.clone();
-                        }
+                        self.frame.try_set_usize(i + window.x, j + window.y, char.clone());
                     }
                 }
             }

@@ -47,7 +47,10 @@ V::::::V           V::::::V                                   d:::::d           
         (self.x, self.y, self.width, self.height)
     }
 
-    pub fn inside(&self, x: usize, y: usize) -> bool {
-        x >= self.x && x < self.x + self.width && y >= self.y && y < self.y + self.height
+    pub fn inside(&self, x: f64, y: f64) -> bool {
+        x >= self.x as f64
+            && x < (self.x + self.width) as f64
+            && y >= self.y as f64
+            && y < (self.y + self.height) as f64
     }
 }

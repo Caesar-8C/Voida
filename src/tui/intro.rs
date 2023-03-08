@@ -1,14 +1,14 @@
-mod particle;
 mod logo;
+mod particle;
 
 use crate::tui::frame::Frame;
+use crate::tui::intro::logo::Logo;
+use crate::tui::intro::particle::Particle;
 use rodio::{Decoder, OutputStream, Sink};
 use std::fs::File;
 use std::time::Duration;
 use termion::terminal_size;
 use tokio::time::{interval, Instant};
-use crate::tui::intro::logo::Logo;
-use crate::tui::intro::particle::Particle;
 
 pub struct Intro {
     frame: Frame,
@@ -102,18 +102,11 @@ impl Intro {
     }
 
     fn draw_particles(&mut self) {
-        self.particles.retain_mut(|p|
-            if p.x < 0.
-                || p.y < 0.
-                || !self.frame.inside(p.x as usize, p.y as usize)
-            {
-                false
-            } else {
-                self.frame.vec[p.y as usize][p.x as usize] = p.symbol.clone();
-                p.fly();
-                true
-            }
-        );
+        self.particles.retain_mut(|p| {
+            let success = self.frame.try_set(p.x, p.y, p.symbol.clone());
+            p.fly();
+            success
+        });
     }
 
     fn draw_logo(&mut self) {
@@ -121,13 +114,14 @@ impl Intro {
         self.logo.frame_center(self.frame.width, self.frame.height);
         let (start_x, start_y, width, height) = self.logo.get_params();
 
-        for i in 0..height {
-            for j in 0..width {
-                let index = i * (width + 2) + j;
-                if self.frame.inside(j + start_x, i + start_y) {
-                    self.frame.vec[i + start_y][j + start_x] =
-                        name[index].to_string();
-                }
+        for j in 0..height {
+            for i in 0..width {
+                let index = j * (width + 2) + i;
+                self.frame.try_set_usize(
+                    i + start_x,
+                    j + start_y,
+                    name[index].to_string(),
+                );
             }
         }
     }
@@ -137,36 +131,22 @@ impl Intro {
     }
 
     fn redraw_particles(&mut self) {
-        self.particles.retain_mut(|p|
-            if p.x < 0.
-                || p.y < 0.
-                || !self.frame.inside(p.x as usize, p.y as usize)
-            {
+        self.particles.retain_mut(|p| {
+            if !self.frame.inside(p.x, p.y) {
                 false
             } else {
-                let x = p.x as usize;
-                let y = p.y as usize;
-                if !self.logo.inside(x, y) {
-                    self.frame.vec[y][x] = " ".to_string();
+                if !self.logo.inside(p.x, p.y) {
+                    self.frame.try_set(p.x, p.y, " ".to_string());
                 }
 
                 p.fly();
 
-                if p.x < 0.
-                    || p.y < 0.
-                    || !self.frame.inside(p.x as usize, p.y as usize)
-                {
-                    false
-                } else {
-                    let x = p.x as usize;
-                    let y = p.y as usize;
-                    if !self.logo.inside(x, y) {
-                        self.frame.vec[y][x] = p.symbol.clone();
-                    }
-                    true
+                if !self.logo.inside(p.x, p.y) {
+                    self.frame.try_set(p.x, p.y, p.symbol.clone());
                 }
+                true
             }
-        );
+        });
     }
 
     fn get_terminal_size() -> Result<(usize, usize), String> {

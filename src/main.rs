@@ -16,8 +16,8 @@ use world::celestials::Celestial;
 async fn main() -> Result<(), String> {
     let delta_t = 60_f64 * 60.;
     let celestials = config::new_solar();
-    let mut spaceships = HashMap::new();
-    let spaceship = config::iss();
+    let spaceships = HashMap::new();
+    let _spaceship = config::iss();
     // spaceships.insert(spaceship.name(), spaceship);
     let world = World::new(celestials, spaceships, delta_t);
     let simulation_period = Duration::from_millis(10);
