@@ -77,7 +77,7 @@ impl Frame {
             for second in first {
                 st += second;
             }
-            st += "\n";
+            st += "\n\r";
         }
         print!("{}c{}", 27 as char, st);
     }
