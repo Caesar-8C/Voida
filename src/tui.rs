@@ -9,7 +9,6 @@ use crate::world::Body;
 use crate::{Celestial, World};
 use std::collections::HashMap;
 use std::time::Duration;
-use termion::terminal_size;
 use tokio::sync::watch::Receiver;
 use tokio::time::interval;
 
@@ -26,8 +25,7 @@ impl Tui {
         fps: u32,
         intro_secs: u64,
     ) -> Result<Self, String> {
-        let (x, y) = terminal_size().map_err(|e| format!("{}", e))?;
-        let frame = Frame::new(x as usize, y as usize - 1);
+        let frame = Frame::new(" ".to_string())?;
 
         if intro_secs > 0 {
             let mut intro = Intro::new(Duration::from_secs(intro_secs), fps)?;
@@ -49,10 +47,8 @@ impl Tui {
 
         loop {
             interval.tick().await;
-            let (x, y) = terminal_size().map_err(|e| format!("{}", e))?;
-            self.frame.resize(x as usize, y as usize - 1);
 
-            self.draw_frame();
+            self.draw_frame()?;
 
             self.frame.flush();
         }
@@ -62,14 +58,16 @@ impl Tui {
         self.windows.push(window);
     }
 
-    fn draw_frame(&mut self) {
-        self.frame.fill("#".to_string());
+    fn draw_frame(&mut self) -> Result<(), String> {
+        self.frame = Frame::new("#".to_string())?;
 
         let world = &self.world.borrow().get();
 
         for window in &self.windows.clone() {
             self.draw_window(window, world);
         }
+
+        Ok(())
     }
 
     fn draw_window(&mut self, window: &Window, world: &HashMap<String, Body>) {

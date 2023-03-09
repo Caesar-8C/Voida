@@ -1,13 +1,17 @@
+mod control;
+
 use crate::World;
 use std::time::Duration;
 use tokio::sync::watch;
 use tokio::sync::watch::{Receiver, Sender};
 use tokio::time::interval;
+use crate::simulation::control::Control;
 
 pub struct Simulation {
     world: World,
     world_publisher: Sender<World>,
     simulation_period: Duration,
+    control: Receiver<bool>,
 }
 
 impl Simulation {
@@ -16,11 +20,15 @@ impl Simulation {
         simulation_period: Duration,
     ) -> (Self, Receiver<World>) {
         let (world_publisher, world_watch) = watch::channel(world.clone());
+        let (control_sender, control) = watch::channel(false);
+        let controller = Control::new(control_sender);
+        tokio::spawn(controller.run());
         (
             Self {
                 world,
                 world_publisher,
                 simulation_period,
+                control,
             },
             world_watch,
         )
@@ -31,6 +39,10 @@ impl Simulation {
 
         loop {
             interval.tick().await;
+
+            if *self.control.borrow() {
+                self.world.update();
+            }
 
             self.world.update();
 

@@ -1,3 +1,5 @@
+use termion::terminal_size;
+
 pub struct Frame {
     pub width: usize,
     pub height: usize,
@@ -5,17 +7,23 @@ pub struct Frame {
 }
 
 impl Frame {
-    pub fn new(width: usize, height: usize) -> Self {
-        Self {
+    pub fn new(background: String) -> Result<Self, String> {
+        let (width, height) = Self::get_terminal_size()?;
+        Ok(Self {
             width,
             height,
-            vec: vec![vec![" ".to_string(); width]; height],
-        }
+            vec: vec![vec![background; width]; height],
+        })
     }
 
-    pub fn resize(&mut self, width: usize, height: usize) {
-        self.width = width;
-        self.height = height;
+    fn get_terminal_size() -> Result<(usize, usize), String> {
+        let (x, y) = terminal_size().map_err(|e| format!("{}", e))?;
+        Ok((x as usize, y as usize - 1))
+    }
+
+    pub fn size_changed(&mut self) -> Result<bool, String> {
+        let (x, y) = Self::get_terminal_size()?;
+        Ok(x != self.width || y != self.height)
     }
 
     pub fn inside(&self, x_f64: f64, y_f64: f64) -> bool {
@@ -33,10 +41,6 @@ impl Frame {
 
     pub fn inside_usize(&self, x: usize, y: usize) -> bool {
         x < self.width && y < self.height
-    }
-
-    pub fn fill(&mut self, val: String) {
-        self.vec = vec![vec![val; self.width]; self.height];
     }
 
     pub fn try_set(&mut self, x_f64: f64, y_f64: f64, value: String) -> bool {
@@ -73,7 +77,7 @@ impl Frame {
             for second in first {
                 st += second;
             }
-            st += "\n";
+            st += "\n\r";
         }
         print!("{}c{}", 27 as char, st);
     }

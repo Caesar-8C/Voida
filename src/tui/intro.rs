@@ -7,7 +7,6 @@ use crate::tui::intro::particle::Particle;
 use rodio::{Decoder, OutputStream, Sink};
 use std::fs::File;
 use std::time::Duration;
-use termion::terminal_size;
 use tokio::time::{interval, Instant};
 
 pub struct Intro {
@@ -20,11 +19,10 @@ pub struct Intro {
 
 impl Intro {
     pub fn new(duration: Duration, fps: u32) -> Result<Self, String> {
-        let (x, y) = Self::get_terminal_size()?;
-        let frame = Frame::new(x, y);
+        let frame = Frame::new(" ".to_string())?;
         let particles = Vec::with_capacity(1000);
         let mut logo = Logo::voida();
-        logo.frame_center(x, y);
+        logo.frame_center(frame.width, frame.height);
 
         Ok(Self {
             frame,
@@ -48,8 +46,7 @@ impl Intro {
             start,
         );
 
-        let (x, y) = Self::get_terminal_size()?;
-        self.draw_full_frame(x, y);
+        self.draw_full_frame()?;
 
         let mut interval = interval(Duration::from_millis(
             (1. / self.fps as f64 * 1000.) as u64,
@@ -66,9 +63,8 @@ impl Intro {
                 start,
             );
 
-            let (x, y) = Self::get_terminal_size()?;
-            if self.terminal_size_changed(x, y) {
-                self.draw_full_frame(x, y);
+            if self.frame.size_changed()? {
+                self.draw_full_frame()?;
             } else {
                 self.redraw_frame();
             }
@@ -82,11 +78,7 @@ impl Intro {
         Ok(())
     }
 
-    fn terminal_size_changed(&mut self, x: usize, y: usize) -> bool {
-        x != self.frame.width || y != self.frame.height
-    }
-
-    fn draw_full_frame(&mut self, x: usize, y: usize) {
+    fn draw_full_frame(&mut self) -> Result<(), String> {
         self.particles.clear();
         Particle::spawn_into(
             &mut self.particles,
@@ -96,9 +88,11 @@ impl Intro {
             Instant::now(),
         );
 
-        self.frame = Frame::new(x, y);
+        self.frame = Frame::new(" ".to_string())?;
         self.draw_particles();
         self.draw_logo();
+
+        Ok(())
     }
 
     fn draw_particles(&mut self) {
@@ -147,11 +141,6 @@ impl Intro {
                 true
             }
         });
-    }
-
-    fn get_terminal_size() -> Result<(usize, usize), String> {
-        let (x, y) = terminal_size().map_err(|e| format!("{}", e))?;
-        Ok((x as usize, y as usize - 1))
     }
 
     async fn play_sound(
