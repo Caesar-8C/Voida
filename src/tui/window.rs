@@ -9,7 +9,7 @@ pub struct Window {
     pub scale: f64,
     pub focus: String,
     pub x_dir: Vec3,
-    pub y_dir:Vec3,
+    pub y_dir: Vec3,
 }
 
 impl Window {
