@@ -1,6 +1,7 @@
-use std::io::stdin;
+use std::io::{stdin, stdout};
 use termion::event::Key;
 use termion::input::TermRead;
+use termion::raw::IntoRawMode;
 use tokio::sync::watch::Sender;
 
 pub struct Control {
@@ -13,6 +14,7 @@ impl Control {
     }
 
     pub async fn run(self) -> Result<(), String> {
+        let _stdout = stdout().into_raw_mode().unwrap();
         let stdin = stdin();
         for c in stdin.keys() {
             match c.unwrap() {

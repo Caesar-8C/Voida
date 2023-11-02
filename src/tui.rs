@@ -61,10 +61,10 @@ impl Tui {
     fn draw_frame(&mut self) -> Result<(), String> {
         self.frame = Frame::new("#".to_string())?;
 
-        let world = &self.world.borrow().get();
+        let world = self.world.borrow().get();
 
         for window in &self.windows.clone() {
-            self.draw_window(window, world);
+            self.draw_window(window, &world);
         }
 
         Ok(())
