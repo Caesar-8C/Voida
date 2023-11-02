@@ -1,5 +1,3 @@
-mod control;
-
 use crate::World;
 use std::time::Duration;
 use tokio::sync::watch;

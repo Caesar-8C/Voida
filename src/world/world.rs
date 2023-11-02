@@ -1,10 +1,6 @@
-pub mod celestials;
-pub mod config;
-pub mod spaceship;
-
-use crate::world::spaceship::Spaceship;
+use super::spaceship::Spaceship;
 use crate::{Celestial, Vec3};
-use celestials::Celestials;
+use super::celestials::Celestials;
 use std::collections::HashMap;
 
 pub enum Body {

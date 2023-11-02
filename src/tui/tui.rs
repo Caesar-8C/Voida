@@ -1,7 +1,3 @@
-mod frame;
-mod intro;
-pub mod window;
-
 use crate::tui::frame::Frame;
 use crate::tui::intro::Intro;
 use crate::tui::window::Window;
