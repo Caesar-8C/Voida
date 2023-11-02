@@ -1,6 +1,6 @@
 use crate::tui::frame::Frame;
 use crate::tui::intro::Intro;
-use crate::tui::window::Window;
+use crate::tui::window::WindowType;
 use crate::world::Body;
 use crate::{Celestial, World};
 use std::collections::HashMap;
@@ -12,7 +12,7 @@ pub struct Tui {
     fps: u32,
     world: Receiver<World>,
     frame: Frame,
-    windows: Vec<Window>,
+    windows: Vec<WindowType>,
 }
 
 impl Tui {
@@ -50,7 +50,7 @@ impl Tui {
         }
     }
 
-    pub fn add_window(&mut self, window: Window) {
+    pub fn add_window(&mut self, window: WindowType) {
         self.windows.push(window);
     }
 
@@ -66,55 +66,59 @@ impl Tui {
         Ok(())
     }
 
-    fn draw_window(&mut self, window: &Window, world: &HashMap<String, Body>) {
-        for x in window.x..(window.x + window.width) {
-            for y in window.y..(window.y + window.height) {
-                self.frame.try_set_usize(x, y, " ".to_string());
+    fn draw_window(&mut self, window_type: &WindowType, world: &HashMap<String, Body>) {
+        if let WindowType::Camera {window, camera} = window_type {
+            for x in window.x..(window.x + window.width) {
+                for y in window.y..(window.y + window.height) {
+                    self.frame.try_set_usize(x, y, " ".to_string());
+                }
             }
-        }
 
-        let focus = match &world[&window.focus] {
-            Body::Celestial(c) => {
-                self.draw_focus_body(c, window);
-                c.pos()
-            }
-            Body::Spaceship(ss) => ss.pos(),
-        };
-
-        for body in world.values() {
-            let (name, pos) = match body {
-                Body::Celestial(c) => (c.name(), c.pos()),
-                Body::Spaceship(ss) => (ss.name(), ss.pos()),
+            let focus = match &world[&camera.focus] {
+                Body::Celestial(c) => {
+                    self.draw_focus_body(c, window_type);
+                    c.pos()
+                }
+                Body::Spaceship(ss) => ss.pos(),
             };
 
-            let mut x = (&pos - &focus) * &window.x_dir * window.scale * 2.
-                + window.width as f64 / 2.;
-            let mut y = (&focus - &pos) * &window.y_dir * window.scale
-                + window.height as f64 / 2.;
+            for body in world.values() {
+                let (name, pos) = match body {
+                    Body::Celestial(c) => (c.name(), c.pos()),
+                    Body::Spaceship(ss) => (ss.name(), ss.pos()),
+                };
 
-            if !window.inside(x, y) {
-                continue;
+                let mut x = (&pos - &focus) * &camera.x_dir * camera.scale * 2.
+                    + window.width as f64 / 2.;
+                let mut y = (&focus - &pos) * &camera.y_dir * camera.scale
+                    + window.height as f64 / 2.;
+
+                if !window.inside(x, y) {
+                    continue;
+                }
+
+                x += window.x as f64;
+                y += window.y as f64;
+
+                let char = Self::get_symbol(&name);
+                self.frame.try_set(x, y, char);
             }
-
-            x += window.x as f64;
-            y += window.y as f64;
-
-            let char = Self::get_symbol(&name);
-            self.frame.try_set(x, y, char);
         }
     }
 
-    fn draw_focus_body(&mut self, celestial: &Celestial, window: &Window) {
+    fn draw_focus_body(&mut self, celestial: &Celestial, window_type: &WindowType) {
         let char = Self::get_symbol(&celestial.name());
 
-        if window.scale * celestial.rad() > 1. {
-            for i in 0..(window.width) {
-                for j in 0..(window.height) {
-                    let x = ((i as f64 - (window.width as f64 / 2.)) / 2.).abs();
-                    let y = (j as f64 - (window.height as f64 / 2.)).abs();
-                    let dist = (x * x + y * y).sqrt() / window.scale;
-                    if dist < celestial.rad() {
-                        self.frame.try_set_usize(i + window.x, j + window.y, char.clone());
+        if let WindowType::Camera {window, camera} = window_type {
+            if camera.scale * celestial.rad() > 1. {
+                for i in 0..(window.width) {
+                    for j in 0..(window.height) {
+                        let x = ((i as f64 - (window.width as f64 / 2.)) / 2.).abs();
+                        let y = (j as f64 - (window.height as f64 / 2.)).abs();
+                        let dist = (x * x + y * y).sqrt() / camera.scale;
+                        if dist < celestial.rad() {
+                            self.frame.try_set_usize(i + window.x, j + window.y, char.clone());
+                        }
                     }
                 }
             }

@@ -44,9 +44,13 @@ impl Frame {
     }
 
     pub fn try_set(&mut self, x_f64: f64, y_f64: f64, value: String) -> bool {
-        let x = x_f64 as usize;
-        let y = y_f64 as usize;
-        self.try_set_usize(x, y, value)
+        if self.inside(x_f64, y_f64) {
+            let x = x_f64 as usize;
+            let y = y_f64 as usize;
+            self.try_set_usize(x, y, value)
+        } else {
+            false
+        }
     }
 
     pub fn try_set_usize(&mut self, x: usize, y: usize, value: String) -> bool {
