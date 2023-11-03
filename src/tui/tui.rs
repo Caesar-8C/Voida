@@ -1,23 +1,17 @@
 use crate::tui::frame::Frame;
 use crate::tui::intro::Intro;
 use crate::tui::window::WindowType;
-use crate::world::Body;
-use crate::{Celestial, World};
-use std::collections::HashMap;
 use std::time::Duration;
-use tokio::sync::watch::Receiver;
 use tokio::time::interval;
 
 pub struct Tui {
     fps: u32,
-    world: Receiver<World>,
     frame: Frame,
     windows: Vec<WindowType>,
 }
 
 impl Tui {
     pub async fn init(
-        world: Receiver<World>,
         fps: u32,
         intro_secs: u64,
     ) -> Result<Self, String> {
@@ -30,7 +24,6 @@ impl Tui {
 
         Ok(Self {
             fps,
-            world,
             frame,
             windows: Vec::new(),
         })
@@ -44,7 +37,13 @@ impl Tui {
         loop {
             interval.tick().await;
 
-            self.draw_frame()?;
+            self.frame = Frame::new("#".to_string())?;
+            for windowtype in &self.windows.clone() {
+                let render = windowtype.render();
+                if let WindowType::Camera{window, ..} = windowtype {
+                    self.frame.try_set_window(window.x, window.y, render);
+                }
+            }
 
             self.frame.flush();
         }
@@ -54,84 +53,4 @@ impl Tui {
         self.windows.push(window);
     }
 
-    fn draw_frame(&mut self) -> Result<(), String> {
-        self.frame = Frame::new("#".to_string())?;
-
-        let world = self.world.borrow().get();
-
-        for window in &self.windows.clone() {
-            self.draw_window(window, &world);
-        }
-
-        Ok(())
-    }
-
-    fn draw_window(&mut self, window_type: &WindowType, world: &HashMap<String, Body>) {
-        if let WindowType::Camera {window, camera} = window_type {
-            for x in window.x..(window.x + window.width) {
-                for y in window.y..(window.y + window.height) {
-                    self.frame.try_set_usize(x, y, " ".to_string());
-                }
-            }
-
-            let focus = match &world[&camera.focus] {
-                Body::Celestial(c) => {
-                    self.draw_focus_body(c, window_type);
-                    c.pos()
-                }
-                Body::Spaceship(ss) => ss.pos(),
-            };
-
-            for body in world.values() {
-                let (name, pos) = match body {
-                    Body::Celestial(c) => (c.name(), c.pos()),
-                    Body::Spaceship(ss) => (ss.name(), ss.pos()),
-                };
-
-                let mut x = (&pos - &focus) * &camera.x_dir * camera.scale * 2.
-                    + window.width as f64 / 2.;
-                let mut y = (&focus - &pos) * &camera.y_dir * camera.scale
-                    + window.height as f64 / 2.;
-
-                if !window.inside(x, y) {
-                    continue;
-                }
-
-                x += window.x as f64;
-                y += window.y as f64;
-
-                let char = Self::get_symbol(&name);
-                self.frame.try_set(x, y, char);
-            }
-        }
-    }
-
-    fn draw_focus_body(&mut self, celestial: &Celestial, window_type: &WindowType) {
-        let char = Self::get_symbol(&celestial.name());
-
-        if let WindowType::Camera {window, camera} = window_type {
-            if camera.scale * celestial.rad() > 1. {
-                for i in 0..(window.width) {
-                    for j in 0..(window.height) {
-                        let x = ((i as f64 - (window.width as f64 / 2.)) / 2.).abs();
-                        let y = (j as f64 - (window.height as f64 / 2.)).abs();
-                        let dist = (x * x + y * y).sqrt() / camera.scale;
-                        if dist < celestial.rad() {
-                            self.frame.try_set_usize(i + window.x, j + window.y, char.clone());
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    fn get_symbol(name: &str) -> String {
-        match name {
-            "Sun" => "O".to_string(),
-            "Earth" => "o".to_string(),
-            "Moon" => "∘".to_string(),
-            "ISS" => "I".to_string(),
-            _ => "X".to_string(),
-        }
-    }
 }

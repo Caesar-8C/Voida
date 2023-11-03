@@ -24,11 +24,11 @@ async fn main() -> Result<(), String> {
     let (mut simulation, world_watch) =
         Simulation::new(world, simulation_period);
 
-    let mut tui = Tui::init(world_watch, 20, 7).await?;
-    tui.add_window(window::sun_standard());
-    tui.add_window(window::earth_standard());
-    tui.add_window(window::moon_from_side());
-    tui.add_window(window::iss());
+    let mut tui = Tui::init(20, 7).await?;
+    tui.add_window(window::sun_standard(world_watch.clone()));
+    tui.add_window(window::earth_standard(world_watch.clone()));
+    tui.add_window(window::moon_from_side(world_watch.clone()));
+    tui.add_window(window::iss(world_watch));
     tokio::spawn(tui.run());
 
     simulation.spin().await
