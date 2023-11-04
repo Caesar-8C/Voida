@@ -1,13 +1,13 @@
 use crate::tui::frame::Frame;
 use crate::tui::intro::Intro;
-use crate::tui::window::WindowType;
 use std::time::Duration;
 use tokio::time::interval;
+use crate::window::Window;
 
 pub struct Tui {
     fps: u32,
     frame: Frame,
-    windows: Vec<WindowType>,
+    windows: Vec<Box<dyn Window>>,
 }
 
 impl Tui {
@@ -38,18 +38,17 @@ impl Tui {
             interval.tick().await;
 
             self.frame = Frame::new("#".to_string())?;
-            for windowtype in &self.windows.clone() {
-                let render = windowtype.render();
-                if let WindowType::Camera{window, ..} = windowtype {
-                    self.frame.try_set_window(window.x, window.y, render);
-                }
+            for window in &self.windows {
+                let render = window.render();
+                let (x, y) = window.position();
+                self.frame.try_set_window(x, y, render);
             }
 
             self.frame.flush();
         }
     }
 
-    pub fn add_window(&mut self, window: WindowType) {
+    pub fn add_window(&mut self, window: Box<dyn Window>) {
         self.windows.push(window);
     }
 

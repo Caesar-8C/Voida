@@ -59,10 +59,10 @@ impl Frame {
         }
     }
 
-    pub fn try_set_window(&mut self, window_x: usize, window_y:usize, render: Vec<Vec<String>>) {
-        for y in 0..(render.len()) {
-            for x in 0..(render[y].len()) {
-                self.try_set_usize(x + window_x, y + window_y, render[y][x].clone());
+    pub fn try_set_window(&mut self, x: usize, y:usize, render: Vec<Vec<String>>) {
+        for (j, row) in render.iter().enumerate() {
+            for (i, item) in row.iter().enumerate() {
+                self.try_set_usize(i + x, j + y, item.clone());
             }
         }
     }
