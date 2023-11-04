@@ -33,10 +33,7 @@ impl Frame {
 
         let x = x_f64 as usize;
         let y = y_f64 as usize;
-        if x >= self.width || y >= self.height {
-            return false;
-        }
-        true
+        self.inside_usize(x, y)
     }
 
     pub fn inside_usize(&self, x: usize, y: usize) -> bool {
@@ -44,17 +41,12 @@ impl Frame {
     }
 
     pub fn try_set(&mut self, x_f64: f64, y_f64: f64, value: String) -> bool {
-        if !self.inside(x_f64, y_f64) {
-            false
-        } else {
+        if self.inside(x_f64, y_f64) {
             let x = x_f64 as usize;
             let y = y_f64 as usize;
-
-            if (&value != "∘" && &value != "I") || &self.vec[y][x] == " " {
-                self.vec[y][x] = value;
-            }
-
-            true
+            self.try_set_usize(x, y, value)
+        } else {
+            false
         }
     }
 
@@ -62,12 +54,16 @@ impl Frame {
         if !self.inside_usize(x, y) {
             false
         } else {
-
-            if (&value != "∘" && &value != "I") || &self.vec[y][x] == " " {
-                self.vec[y][x] = value;
-            }
-
+            self.vec[y][x] = value;
             true
+        }
+    }
+
+    pub fn try_set_window(&mut self, x: usize, y:usize, render: Vec<Vec<String>>) {
+        for (j, row) in render.iter().enumerate() {
+            for (i, item) in row.iter().enumerate() {
+                self.try_set_usize(i + x, j + y, item.clone());
+            }
         }
     }
 
