@@ -13,25 +13,44 @@ pub struct CameraWindow {
 }
 
 impl CameraWindow {
-    fn draw_focus_body(
+    fn draw_circle(
         &self,
-        celestial: &Celestial,
+        center: (f64, f64),
+        radius: f64,
         render: &mut [Vec<String>],
+        char: String,
     ) {
-        let char = Self::get_symbol(&celestial.name());
-
-        if self.camera.scale * celestial.rad() > 1. {
-            for (j, row) in render.iter_mut().enumerate() {
-                for (i, item) in row.iter_mut().enumerate() {
-                    let x = ((i as f64 - (self.window.width as f64 / 2.)) / 2.)
-                        .abs();
-                    let y = (j as f64 - (self.window.height as f64 / 2.)).abs();
-                    let dist = (x * x + y * y).sqrt() / self.camera.scale;
-                    if dist < celestial.rad() {
-                        *item = char.clone();
+        let r_i32 = radius as i32;
+        for i in -2 * r_i32..(2 * r_i32 + 1) {
+            for j in -r_i32..(r_i32 + 1) {
+                if ((i * i) as f64) / 4. + ((j * j) as f64)
+                    < (radius * radius) + 1.
+                {
+                    let x = i as f64 + center.0;
+                    let y = j as f64 + center.1;
+                    if self.window.inside(x, y) {
+                        render[y as usize][x as usize] = char.clone();
                     }
                 }
             }
+        }
+    }
+
+    fn draw_celestial(
+        &self,
+        celestial: &Celestial,
+        x: f64,
+        y: f64,
+        render: &mut [Vec<String>],
+    ) {
+        let char = Self::get_symbol(&celestial.name());
+        let center = (x, y);
+        let radius = celestial.rad() * self.camera.scale;
+
+        if x.abs() < 2. * radius + self.window.width as f64
+            && y.abs() < radius + self.window.height as f64
+        {
+            self.draw_circle(center, radius, render, char);
         }
     }
 
@@ -54,10 +73,7 @@ impl Window for CameraWindow {
         let world = self.camera.world.borrow().get();
 
         let focus = match &world[&self.camera.focus] {
-            Body::Celestial(c) => {
-                self.draw_focus_body(c, &mut render);
-                c.pos()
-            }
+            Body::Celestial(c) => c.pos(),
             Body::Spaceship(ss) => ss.pos(),
         };
 
@@ -73,12 +89,19 @@ impl Window for CameraWindow {
             let y = (&focus - &pos) * &self.camera.y_dir * self.camera.scale
                 + self.window.height as f64 / 2.;
 
-            if self.window.inside(x, y) {
-                let char = Self::get_symbol(&name);
-                if (&char != "∘" && &char != "I")
-                    || render[y as usize][x as usize] == " "
-                {
-                    render[y as usize][x as usize] = char;
+            match body {
+                Body::Celestial(c) => {
+                    self.draw_celestial(c, x, y, &mut render);
+                }
+                Body::Spaceship(_) => {
+                    if self.window.inside(x, y) {
+                        let char = Self::get_symbol(&name);
+                        if (&char != "∘" && &char != "I")
+                            || render[y as usize][x as usize] == " "
+                        {
+                            render[y as usize][x as usize] = char;
+                        }
+                    }
                 }
             }
         }

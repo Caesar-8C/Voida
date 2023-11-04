@@ -14,11 +14,11 @@ use world::celestials::Celestial;
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
-    let delta_t = 60_f64 * 60.;
+    let delta_t = 5_f64;
     let celestials = config::new_solar();
-    let spaceships = HashMap::new();
-    let _spaceship = config::iss();
-    // spaceships.insert(spaceship.name(), spaceship);
+    let mut spaceships = HashMap::new();
+    let spaceship = config::iss();
+    spaceships.insert(spaceship.name(), spaceship);
     let world = World::new(celestials, spaceships, delta_t);
     let simulation_period = Duration::from_millis(10);
     let (mut simulation, world_watch) =
