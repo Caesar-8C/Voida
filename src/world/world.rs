@@ -9,14 +9,14 @@ pub enum Body {
 }
 
 impl Body {
-    pub fn _pos(&self) -> Vec3 {
+    pub fn pos(&self) -> Vec3 {
         match self {
             Body::Celestial(c) => c.pos(),
             Body::Spaceship(ss) => ss.pos(),
         }
     }
 
-    pub fn _name(&self) -> String {
+    pub fn name(&self) -> String {
         match self {
             Body::Celestial(c) => c.name(),
             Body::Spaceship(ss) => ss.name(),

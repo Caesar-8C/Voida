@@ -1,5 +1,5 @@
 #[allow(clippy::module_inception)]
-pub mod tui;
+mod tui;
 mod frame;
 mod intro;
 pub mod window;
