@@ -1,8 +1,9 @@
 use super::{Camera, CameraWindow, Rectangle};
 use crate::{Vec3, World};
 use tokio::sync::watch::Receiver;
+use super::PlotWindow;
 
-pub fn sun_standard(world: Receiver<World>) -> Box<CameraWindow> {
+pub fn _sun_standard(world: Receiver<World>) -> Box<CameraWindow> {
     Box::new(CameraWindow {
         window: Rectangle {
             width: 80,
@@ -90,7 +91,7 @@ pub fn iss(world: Receiver<World>) -> Box<CameraWindow> {
         },
         camera: Camera {
             scale: 10_f64 / 6_f64 / 10_f64.powi(6),
-            focus: "Earth".to_string(),
+            focus: "ISS".to_string(),
             x_dir: Vec3 {
                 x: 1.,
                 y: 0.,
@@ -103,5 +104,18 @@ pub fn iss(world: Receiver<World>) -> Box<CameraWindow> {
             },
             world,
         },
+    })
+}
+
+pub fn plot_test(world: Receiver<World>) -> Box<PlotWindow> {
+    Box::new(PlotWindow {
+        window: Rectangle {
+            width: 80,
+            height: 26,
+            x: 21,
+            y: 0,
+        },
+        world,
+        data: vec![400_000.; 200],
     })
 }

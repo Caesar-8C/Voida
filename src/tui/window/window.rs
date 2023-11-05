@@ -1,5 +1,5 @@
 pub trait Window: Send {
-    fn render(&self) -> Vec<Vec<String>>;
+    fn render(&mut self) -> Vec<Vec<String>>;
     fn position(&self) -> (usize, usize);
 }
 

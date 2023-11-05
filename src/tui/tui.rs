@@ -38,7 +38,7 @@ impl Tui {
             interval.tick().await;
 
             self.frame = Frame::new("#".to_string())?;
-            for window in &self.windows {
+            for window in self.windows.iter_mut() {
                 let render = window.render();
                 let (x, y) = window.position();
                 self.frame.try_set_window(x, y, render);

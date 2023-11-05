@@ -62,7 +62,7 @@ impl CameraWindow {
 }
 
 impl Window for CameraWindow {
-    fn render(&self) -> Vec<Vec<String>> {
+    fn render(&mut self) -> Vec<Vec<String>> {
         let mut render =
             vec![vec![" ".to_string(); self.window.width]; self.window.height];
 

@@ -25,7 +25,7 @@ async fn main() -> Result<(), String> {
         Simulation::new(world, simulation_period);
 
     let mut tui = Tui::init(20, 7).await?;
-    tui.add_window(window::sun_standard(world_watch.clone()));
+    tui.add_window(window::plot_test(world_watch.clone()));
     tui.add_window(window::earth_standard(world_watch.clone()));
     tui.add_window(window::moon_from_side(world_watch.clone()));
     tui.add_window(window::iss(world_watch));
