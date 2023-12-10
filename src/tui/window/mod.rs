@@ -3,9 +3,11 @@ mod config;
 #[allow(clippy::module_inception)]
 mod window;
 mod plot;
+mod text;
 
 use camera::{Camera, CameraWindow};
 use plot::PlotWindow;
-pub use config::{earth_standard, iss, moon_from_side, plot_test};
+use text::TextWindow;
+pub use config::{earth_standard, iss, plot_test, text_test};
 use window::Rectangle;
 pub use window::Window;

@@ -1,4 +1,4 @@
-use super::{Camera, CameraWindow, Rectangle};
+use super::{Camera, CameraWindow, Rectangle, TextWindow};
 use crate::{Vec3, World};
 use tokio::sync::watch::Receiver;
 use super::PlotWindow;
@@ -55,7 +55,7 @@ pub fn earth_standard(world: Receiver<World>) -> Box<CameraWindow> {
     })
 }
 
-pub fn moon_from_side(world: Receiver<World>) -> Box<CameraWindow> {
+pub fn _moon_from_side(world: Receiver<World>) -> Box<CameraWindow> {
     Box::new(CameraWindow {
         window: Rectangle {
             width: 80,
@@ -117,5 +117,17 @@ pub fn plot_test(world: Receiver<World>) -> Box<PlotWindow> {
         },
         world,
         data: vec![400_000.; 200],
+    })
+}
+
+pub fn text_test() -> Box<TextWindow> {
+    Box::new(TextWindow {
+        window: Rectangle {
+            width: 80,
+            height: 12,
+            x: 102,
+            y: 41,
+        },
+        data: "Hello, World!\nHow are things?\nLet's do stuff".to_string(),
     })
 }
