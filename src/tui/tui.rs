@@ -15,7 +15,7 @@ impl Tui {
         fps: u32,
         intro_secs: u64,
     ) -> Result<Self, String> {
-        let frame = Frame::new(" ".to_string())?;
+        let frame = Frame::new(' ')?;
 
         if intro_secs > 0 {
             let mut intro = Intro::new(Duration::from_secs(intro_secs), fps)?;
@@ -37,7 +37,7 @@ impl Tui {
         loop {
             interval.tick().await;
 
-            self.frame = Frame::new("#".to_string())?;
+            self.frame = Frame::new('#')?;
             for window in self.windows.iter_mut() {
                 let render = window.render();
                 let (x, y) = window.position();

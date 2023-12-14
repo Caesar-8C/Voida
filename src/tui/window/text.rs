@@ -6,9 +6,9 @@ pub struct TextWindow {
 }
 
 impl Window for TextWindow {
-    fn render(&mut self) -> Vec<Vec<String>> {
+    fn render(&mut self) -> Vec<Vec<char>> {
         let mut render =
-            vec![vec![" ".to_string(); self.window.width]; self.window.height];
+            vec![vec![' '; self.window.width]; self.window.height];
 
         let mut k = 0;
         for row in render.iter_mut() {
@@ -18,7 +18,7 @@ impl Window for TextWindow {
                     if char == '\n' {
                         break;
                     } else {
-                        *item = char.to_string();
+                        *item = char;
                     }
                 }
             }

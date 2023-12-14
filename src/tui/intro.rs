@@ -19,7 +19,7 @@ pub struct Intro {
 
 impl Intro {
     pub fn new(duration: Duration, fps: u32) -> Result<Self, String> {
-        let frame = Frame::new(" ".to_string())?;
+        let frame = Frame::new(' ')?;
         let particles = Vec::with_capacity(1000);
         let mut logo = Logo::voida();
         logo.frame_center(frame.width, frame.height);
@@ -88,7 +88,7 @@ impl Intro {
             Instant::now(),
         );
 
-        self.frame = Frame::new(" ".to_string())?;
+        self.frame = Frame::new(' ')?;
         self.draw_particles();
         self.draw_logo();
 
@@ -97,7 +97,7 @@ impl Intro {
 
     fn draw_particles(&mut self) {
         self.particles.retain_mut(|p| {
-            let success = self.frame.try_set(p.x, p.y, p.symbol.clone());
+            let success = self.frame.try_set(p.x, p.y, p.symbol);
             p.fly();
             success
         });
@@ -114,7 +114,7 @@ impl Intro {
                 self.frame.try_set_usize(
                     i + start_x,
                     j + start_y,
-                    name[index].to_string(),
+                    name[index],
                 );
             }
         }
@@ -130,13 +130,13 @@ impl Intro {
                 false
             } else {
                 if !self.logo.inside(p.x, p.y) {
-                    self.frame.try_set(p.x, p.y, " ".to_string());
+                    self.frame.try_set(p.x, p.y, ' ');
                 }
 
                 p.fly();
 
                 if !self.logo.inside(p.x, p.y) {
-                    self.frame.try_set(p.x, p.y, p.symbol.clone());
+                    self.frame.try_set(p.x, p.y, p.symbol);
                 }
                 true
             }

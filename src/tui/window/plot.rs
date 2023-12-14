@@ -43,9 +43,9 @@ impl PlotWindow {
 }
 
 impl Window for PlotWindow {
-    fn render(&mut self) -> Vec<Vec<String>> {
+    fn render(&mut self) -> Vec<Vec<char>> {
         let mut render =
-            vec![vec![" ".to_string(); self.window.width]; self.window.height];
+            vec![vec![' '; self.window.width]; self.window.height];
 
         self.update();
 
@@ -64,7 +64,7 @@ impl Window for PlotWindow {
                     if char == '\n' {
                         break;
                     } else {
-                        *item = char.to_string();
+                        *item = char;
                     }
                 }
             }
