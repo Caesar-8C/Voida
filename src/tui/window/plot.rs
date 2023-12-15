@@ -8,14 +8,11 @@ pub struct PlotWindow {
     pub window: Rectangle,
     pub world: Receiver<World>,
     pub data: Vec<f64>,
+    pub cursor: usize,
 }
 
 impl PlotWindow {
     fn update(&mut self) {
-        let last_i = self.data.len() - 1;
-        for i in 0..last_i {
-            self.data[i] = self.data[i + 1];
-        }
         let world = self.world.borrow().get();
         let earth = world[&"Earth".to_string()].pos();
         let iss = world[&"ISS".to_string()].pos();
@@ -25,7 +22,9 @@ impl PlotWindow {
                 + (earth.z - iss.z) * (earth.z - iss.z))
                 .sqrt()
                 - e.rad();
-            self.data[last_i] = dist;
+            self.cursor %= self.data.len();
+            self.data[self.cursor] = dist;
+            self.cursor += 1;
         }
     }
 
@@ -38,7 +37,9 @@ impl PlotWindow {
             x_usize = self.data.len() - 1;
         }
 
-        self.data[x_usize] as f32
+        let index = (x_usize + self.cursor) % self.data.len();
+
+        self.data[index] as f32
     }
 }
 

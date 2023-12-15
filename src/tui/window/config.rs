@@ -117,6 +117,7 @@ pub fn plot_test(world: Receiver<World>) -> Box<PlotWindow> {
         },
         world,
         data: vec![400_000.; 200],
+        cursor: 0,
     })
 }
 
