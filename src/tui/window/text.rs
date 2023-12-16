@@ -1,12 +1,17 @@
-use super::{Rectangle, Window};
+use super::{Canvas, Window};
 
 pub struct TextWindow {
-    pub window: Rectangle,
+    pub window: Canvas,
     pub data: String,
+    pub update_pending: bool,
 }
 
 impl Window for TextWindow {
-    fn render(&mut self) -> Vec<Vec<char>> {
+    fn render(&mut self, force: bool) -> Option<Vec<Vec<char>>> {
+        if !self.update_pending && !force {
+            return None;
+        }
+
         let mut render =
             vec![vec![' '; self.window.width]; self.window.height];
 
@@ -24,7 +29,7 @@ impl Window for TextWindow {
             }
         }
 
-        render
+        Some(render)
     }
 
     fn position(&self) -> (usize, usize) {

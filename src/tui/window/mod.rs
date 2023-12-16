@@ -9,5 +9,5 @@ use camera::{Camera, CameraWindow};
 use plot::PlotWindow;
 use text::TextWindow;
 pub use config::{earth_standard, iss, plot_test, text_test};
-use window::Rectangle;
+use window::Canvas;
 pub use window::Window;

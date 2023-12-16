@@ -1,11 +1,14 @@
-use super::{Rectangle, Window};
+use std::time::{Duration, Instant};
+use super::{Canvas, Window};
 use crate::world::Body;
 use crate::{Celestial, Vec3, World};
 use tokio::sync::watch::Receiver;
 
 pub struct CameraWindow {
-    pub window: Rectangle,
+    pub window: Canvas,
     pub camera: Camera,
+    pub update_period: Duration,
+    pub next_update: Instant,
 }
 
 impl CameraWindow {
@@ -62,7 +65,12 @@ impl CameraWindow {
 }
 
 impl Window for CameraWindow {
-    fn render(&mut self) -> Vec<Vec<char>> {
+    fn render(&mut self, force: bool) -> Option<Vec<Vec<char>>> {
+        if self.next_update > Instant::now() && !force {
+            return None;
+        }
+        self.next_update = Instant::now() + self.update_period;
+
         let mut render =
             vec![vec![' '; self.window.width]; self.window.height];
 
@@ -96,7 +104,7 @@ impl Window for CameraWindow {
             }
         }
 
-        render
+        Some(render)
     }
 
     fn position(&self) -> (usize, usize) {

@@ -1,14 +1,17 @@
-use super::{Rectangle, Window};
+use std::time::{Duration, Instant};
+use super::{Canvas, Window};
 use crate::world::Body;
 use crate::World;
 use textplots::{Chart, Plot, Shape};
 use tokio::sync::watch::Receiver;
 
 pub struct PlotWindow {
-    pub window: Rectangle,
+    pub window: Canvas,
     pub world: Receiver<World>,
     pub data: Vec<f64>,
     pub cursor: usize,
+    pub update_period: Duration,
+    pub next_update: Instant,
 }
 
 impl PlotWindow {
@@ -44,11 +47,16 @@ impl PlotWindow {
 }
 
 impl Window for PlotWindow {
-    fn render(&mut self) -> Vec<Vec<char>> {
+    fn render(&mut self, force: bool) -> Option<Vec<Vec<char>>> {
+        self.update();
+
+        if self.next_update > Instant::now() && !force {
+            return None;
+        }
+        self.next_update = Instant::now() + self.update_period;
+
         let mut render =
             vec![vec![' '; self.window.width]; self.window.height];
-
-        self.update();
 
         let mut chart = Chart::new(130, 100, 0., 200.);
         let shape = Shape::Continuous(Box::new(|x| self.get_data(x)));
@@ -71,7 +79,7 @@ impl Window for PlotWindow {
             }
         }
 
-        render
+        Some(render)
     }
 
     fn position(&self) -> (usize, usize) {
