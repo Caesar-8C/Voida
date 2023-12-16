@@ -1,21 +1,21 @@
-use super::{Rectangle, Window};
+use std::time::{Duration, Instant};
+use super::{Canvas, Window};
 use crate::world::Body;
 use crate::World;
 use textplots::{Chart, Plot, Shape};
 use tokio::sync::watch::Receiver;
 
 pub struct PlotWindow {
-    pub window: Rectangle,
+    pub window: Canvas,
     pub world: Receiver<World>,
     pub data: Vec<f64>,
+    pub cursor: usize,
+    pub update_period: Duration,
+    pub next_update: Instant,
 }
 
 impl PlotWindow {
     fn update(&mut self) {
-        let last_i = self.data.len() - 1;
-        for i in 0..last_i {
-            self.data[i] = self.data[i + 1];
-        }
         let world = self.world.borrow().get();
         let earth = world[&"Earth".to_string()].pos();
         let iss = world[&"ISS".to_string()].pos();
@@ -25,7 +25,9 @@ impl PlotWindow {
                 + (earth.z - iss.z) * (earth.z - iss.z))
                 .sqrt()
                 - e.rad();
-            self.data[last_i] = dist;
+            self.cursor %= self.data.len();
+            self.data[self.cursor] = dist;
+            self.cursor += 1;
         }
     }
 
@@ -38,16 +40,23 @@ impl PlotWindow {
             x_usize = self.data.len() - 1;
         }
 
-        self.data[x_usize] as f32
+        let index = (x_usize + self.cursor) % self.data.len();
+
+        self.data[index] as f32
     }
 }
 
 impl Window for PlotWindow {
-    fn render(&mut self) -> Vec<Vec<String>> {
-        let mut render =
-            vec![vec![" ".to_string(); self.window.width]; self.window.height];
-
+    fn render(&mut self, force: bool) -> Option<Vec<Vec<char>>> {
         self.update();
+
+        if self.next_update > Instant::now() && !force {
+            return None;
+        }
+        self.next_update = Instant::now() + self.update_period;
+
+        let mut render =
+            vec![vec![' '; self.window.width]; self.window.height];
 
         let mut chart = Chart::new(130, 100, 0., 200.);
         let shape = Shape::Continuous(Box::new(|x| self.get_data(x)));
@@ -64,13 +73,13 @@ impl Window for PlotWindow {
                     if char == '\n' {
                         break;
                     } else {
-                        *item = char.to_string();
+                        *item = char;
                     }
                 }
             }
         }
 
-        render
+        Some(render)
     }
 
     fn position(&self) -> (usize, usize) {

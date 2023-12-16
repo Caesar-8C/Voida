@@ -3,11 +3,11 @@ use termion::terminal_size;
 pub struct Frame {
     pub width: usize,
     pub height: usize,
-    vec: Vec<Vec<String>>,
+    vec: Vec<Vec<char>>,
 }
 
 impl Frame {
-    pub fn new(background: String) -> Result<Self, String> {
+    pub fn new(background: char) -> Result<Self, String> {
         let (width, height) = Self::get_terminal_size()?;
         Ok(Self {
             width,
@@ -40,7 +40,7 @@ impl Frame {
         x < self.width && y < self.height
     }
 
-    pub fn try_set(&mut self, x_f64: f64, y_f64: f64, value: String) -> bool {
+    pub fn try_set(&mut self, x_f64: f64, y_f64: f64, value: char) -> bool {
         if self.inside(x_f64, y_f64) {
             let x = x_f64 as usize;
             let y = y_f64 as usize;
@@ -50,7 +50,7 @@ impl Frame {
         }
     }
 
-    pub fn try_set_usize(&mut self, x: usize, y: usize, value: String) -> bool {
+    pub fn try_set_usize(&mut self, x: usize, y: usize, value: char) -> bool {
         if !self.inside_usize(x, y) {
             false
         } else {
@@ -59,10 +59,10 @@ impl Frame {
         }
     }
 
-    pub fn try_set_window(&mut self, x: usize, y:usize, render: Vec<Vec<String>>) {
+    pub fn try_set_window(&mut self, x: usize, y:usize, render: Vec<Vec<char>>) {
         for (j, row) in render.iter().enumerate() {
             for (i, item) in row.iter().enumerate() {
-                self.try_set_usize(i + x, j + y, item.clone());
+                self.try_set_usize(i + x, j + y, *item);
             }
         }
     }
@@ -71,7 +71,7 @@ impl Frame {
         let mut st = "".to_string();
         for first in &self.vec {
             for second in first {
-                st += second;
+                st.push(*second);
             }
             st += "\n\r";
         }

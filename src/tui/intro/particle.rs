@@ -2,14 +2,14 @@ use std::time::Duration;
 use tokio::time::Instant;
 use rand::Rng;
 
-const SYMBOLS: [&str; 6] = ["#", "o", ".", ",", "*", "$"];
+const SYMBOLS: [char; 6] = ['#', 'o', '.', ',', '*', '$'];
 
 pub struct Particle {
     pub x: f64,
     pub y: f64,
     pub angle: f64,
     pub speed: f64,
-    pub symbol: String,
+    pub symbol: char,
 }
 
 impl Particle {
@@ -46,7 +46,7 @@ impl Particle {
             y: y as f64 / 2.,
             angle,
             speed,
-            symbol: SYMBOLS[index].to_string(),
+            symbol: SYMBOLS[index],
         }
     }
 

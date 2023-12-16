@@ -1,8 +1,8 @@
 use crate::tui::frame::Frame;
 use crate::tui::intro::Intro;
+use crate::window::Window;
 use std::time::Duration;
 use tokio::time::interval;
-use crate::window::Window;
 
 pub struct Tui {
     fps: u32,
@@ -11,11 +11,8 @@ pub struct Tui {
 }
 
 impl Tui {
-    pub async fn init(
-        fps: u32,
-        intro_secs: u64,
-    ) -> Result<Self, String> {
-        let frame = Frame::new(" ".to_string())?;
+    pub async fn init(fps: u32, intro_secs: u64) -> Result<Self, String> {
+        let frame = Frame::new('#')?;
 
         if intro_secs > 0 {
             let mut intro = Intro::new(Duration::from_secs(intro_secs), fps)?;
@@ -37,11 +34,19 @@ impl Tui {
         loop {
             interval.tick().await;
 
-            self.frame = Frame::new("#".to_string())?;
+            let mut force_redraw = false;
+
+            if self.frame.size_changed()? {
+                self.frame = Frame::new('#')?;
+                force_redraw = true;
+            }
+
             for window in self.windows.iter_mut() {
-                let render = window.render();
-                let (x, y) = window.position();
-                self.frame.try_set_window(x, y, render);
+                let render = window.render(force_redraw);
+                if let Some(render) = render {
+                    let (x, y) = window.position();
+                    self.frame.try_set_window(x, y, render);
+                }
             }
 
             self.frame.flush();
@@ -51,5 +56,4 @@ impl Tui {
     pub fn add_window(&mut self, window: Box<dyn Window>) {
         self.windows.push(window);
     }
-
 }

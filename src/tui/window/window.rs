@@ -1,17 +1,17 @@
 pub trait Window: Send {
-    fn render(&mut self) -> Vec<Vec<String>>;
+    fn render(&mut self, force: bool) -> Option<Vec<Vec<char>>>;
     fn position(&self) -> (usize, usize);
 }
 
 #[derive(Clone)]
-pub struct Rectangle {
+pub struct Canvas {
     pub width: usize,
     pub height: usize,
     pub x: usize,
     pub y: usize,
 }
 
-impl Rectangle {
+impl Canvas {
     pub fn inside(&self, x_f64: f64, y_f64: f64) -> bool {
         if x_f64 < 0. || y_f64 < 0. {
             return false;

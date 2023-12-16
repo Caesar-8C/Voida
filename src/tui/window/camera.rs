@@ -1,11 +1,14 @@
-use super::{Rectangle, Window};
+use std::time::{Duration, Instant};
+use super::{Canvas, Window};
 use crate::world::Body;
 use crate::{Celestial, Vec3, World};
 use tokio::sync::watch::Receiver;
 
 pub struct CameraWindow {
-    pub window: Rectangle,
+    pub window: Canvas,
     pub camera: Camera,
+    pub update_period: Duration,
+    pub next_update: Instant,
 }
 
 impl CameraWindow {
@@ -13,8 +16,8 @@ impl CameraWindow {
         &self,
         center: (f64, f64),
         radius: f64,
-        render: &mut [Vec<String>],
-        char: String,
+        render: &mut [Vec<char>],
+        char: char,
     ) {
         let r_i32 = radius as i32;
         for i in -2 * r_i32..(2 * r_i32 + 1) {
@@ -25,7 +28,7 @@ impl CameraWindow {
                     let x = i as f64 + center.0;
                     let y = j as f64 + center.1;
                     if self.window.inside(x, y) {
-                        render[y as usize][x as usize] = char.clone();
+                        render[y as usize][x as usize] = char;
                     }
                 }
             }
@@ -37,7 +40,7 @@ impl CameraWindow {
         celestial: &Celestial,
         x: f64,
         y: f64,
-        render: &mut [Vec<String>],
+        render: &mut [Vec<char>],
     ) {
         let char = Self::get_symbol(&celestial.name());
         let center = (x, y);
@@ -50,21 +53,26 @@ impl CameraWindow {
         }
     }
 
-    fn get_symbol(name: &str) -> String {
+    fn get_symbol(name: &str) -> char {
         match name {
-            "Sun" => "O".to_string(),
-            "Earth" => "o".to_string(),
-            "Moon" => "∘".to_string(),
-            "ISS" => "I".to_string(),
-            _ => "X".to_string(),
+            "Sun" => 'O',
+            "Earth" => 'o',
+            "Moon" => '∘',
+            "ISS" => 'I',
+            _ => 'X',
         }
     }
 }
 
 impl Window for CameraWindow {
-    fn render(&mut self) -> Vec<Vec<String>> {
+    fn render(&mut self, force: bool) -> Option<Vec<Vec<char>>> {
+        if self.next_update > Instant::now() && !force {
+            return None;
+        }
+        self.next_update = Instant::now() + self.update_period;
+
         let mut render =
-            vec![vec![" ".to_string(); self.window.width]; self.window.height];
+            vec![vec![' '; self.window.width]; self.window.height];
 
         let world = self.camera.world.borrow().get();
 
@@ -86,8 +94,8 @@ impl Window for CameraWindow {
                 Body::Spaceship(_) => {
                     if self.window.inside(x, y) {
                         let char = Self::get_symbol(&name);
-                        if (&char != "∘" && &char != "I")
-                            || render[y as usize][x as usize] == " "
+                        if (char != '∘' && char != 'I')
+                            || render[y as usize][x as usize] == ' '
                         {
                             render[y as usize][x as usize] = char;
                         }
@@ -96,7 +104,7 @@ impl Window for CameraWindow {
             }
         }
 
-        render
+        Some(render)
     }
 
     fn position(&self) -> (usize, usize) {
