@@ -1,6 +1,3 @@
-mod logo;
-mod particle;
-
 use crate::tui::frame::Frame;
 use crate::tui::intro::logo::Logo;
 use crate::tui::intro::particle::Particle;
