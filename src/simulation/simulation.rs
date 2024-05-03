@@ -19,8 +19,8 @@ impl Simulation {
     ) -> (Self, Receiver<World>) {
         let (world_publisher, world_watch) = watch::channel(world.clone());
         let (control_sender, control) = watch::channel(false);
-        let controller = Control::new(control_sender);
-        tokio::spawn(controller.run());
+        // let controller = Control::new(control_sender);
+        // tokio::spawn(controller.run());
         (
             Self {
                 world,

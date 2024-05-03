@@ -1,13 +1,16 @@
+mod gui;
 mod simulation;
 mod tui;
 mod utils;
 mod world;
 
+use crate::gui::Gui;
 use crate::simulation::Simulation;
 use crate::tui::window;
 use crate::tui::Tui;
 use crate::world::{config, World};
 use std::collections::HashMap;
+use std::thread;
 use std::time::Duration;
 use utils::Vec3;
 use world::celestials::Celestial;
@@ -24,12 +27,8 @@ async fn main() -> Result<(), String> {
     let (mut simulation, world_watch) =
         Simulation::new(world, simulation_period);
 
-    let mut tui = Tui::init(20, 7).await?;
-    tui.add_window(window::plot_test(world_watch.clone()));
-    tui.add_window(window::earth_standard(world_watch.clone()));
-    tui.add_window(window::text_test());
-    tui.add_window(window::iss(world_watch));
-    tokio::spawn(tui.run());
+    let gui = Gui::new(20.);
+    thread::spawn(move || gui.run(world_watch));
 
     simulation.spin().await
 }
