@@ -1,48 +1,58 @@
-use crate::simulation::control::Control;
+use crate::gui::Control;
 use crate::World;
 use std::time::Duration;
-use tokio::sync::watch;
-use tokio::sync::watch::{Receiver, Sender};
+use tokio::sync::{mpsc, watch};
 use tokio::time::interval;
+use tokio::sync::mpsc::error::TryRecvError;
 
 pub struct Simulation {
     world: World,
-    world_publisher: Sender<World>,
-    simulation_period: Duration,
-    control: Receiver<bool>,
+    world_publisher: watch::Sender<World>,
+    simulation_fps: u32,
+    control: mpsc::Receiver<Control>,
+    delta_t: f64,
 }
 
 impl Simulation {
     pub fn new(
         world: World,
-        simulation_period: Duration,
-    ) -> (Self, Receiver<World>) {
+        simulation_fps: u32,
+        delta_t: f64,
+        control: mpsc::Receiver<Control>,
+    ) -> (Self, watch::Receiver<World>) {
         let (world_publisher, world_watch) = watch::channel(world.clone());
-        let (control_sender, control) = watch::channel(false);
-        // let controller = Control::new(control_sender);
-        // tokio::spawn(controller.run());
         (
             Self {
                 world,
                 world_publisher,
-                simulation_period,
+                simulation_fps,
                 control,
+                delta_t,
             },
             world_watch,
         )
     }
 
     pub async fn spin(&mut self) -> Result<(), String> {
-        let mut interval = interval(self.simulation_period);
+        let mut interval =
+            interval(Duration::from_secs_f64(1. / self.simulation_fps as f64));
 
         loop {
             interval.tick().await;
 
-            if *self.control.borrow() {
-                self.world.update();
+            loop {
+                match self.control.try_recv() {
+                    Ok(Control::Shutdown) | Err(TryRecvError::Disconnected) => return Ok(()),
+                    _ => break,
+                }
             }
 
-            self.world.update();
+            for spaceship in self.world.spaceships.values_mut() {
+                let a =
+                    self.world.celestials.get_global_acceleration(spaceship.pos());
+                spaceship.apply_gravity(a, self.delta_t);
+            }
+            self.world.celestials.update(self.delta_t);
 
             self.world_publisher
                 .send(self.world.clone())

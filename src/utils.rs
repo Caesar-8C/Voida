@@ -1,5 +1,7 @@
 use std::ops;
 
+pub const G: f64 = 6.6743_f64 * 0.000_000_000_01;
+
 #[derive(Clone, Debug)]
 pub struct Vec3 {
     pub x: f64,

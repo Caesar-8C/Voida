@@ -1,3 +1,5 @@
+use crate::gui::Control;
+use crate::world::Body::Celestial;
 use crate::world::World;
 use embedded_graphics::prelude::{DrawTarget, Point, Primitive, Size};
 use embedded_graphics::primitives::{Circle, PrimitiveStyle, Rectangle};
@@ -8,19 +10,19 @@ use embedded_graphics_simulator::{
     Window,
 };
 use std::time::{Duration, Instant};
-use tokio::sync::watch;
-use crate::world::Body::Celestial;
+use tokio::sync::{mpsc, watch};
 
 pub struct Gui {
     fps: f64,
+    controller: mpsc::Sender<Control>,
 }
 
 impl Gui {
-    pub fn new(fps: f64) -> Self {
-        Self { fps }
+    pub fn new(fps: f64, controller: mpsc::Sender<Control>) -> Self {
+        Self { fps, controller }
     }
 
-    pub fn run(self, world: watch::Receiver<World>) {
+    pub fn run(self, world: watch::Receiver<World>) -> Result<(), String> {
         let mut display =
             SimulatorDisplay::<BinaryColor>::new(Size::new(400, 200));
         let line_style = PrimitiveStyle::with_stroke(BinaryColor::On, 1);
@@ -73,11 +75,19 @@ impl Gui {
 
                 for event in window.events() {
                     match event {
-                        SimulatorEvent::Quit => std::process::exit(0),
+                        SimulatorEvent::Quit => {
+                            self.controller
+                                .blocking_send(Control::Shutdown)
+                                .map_err(|e| e.to_string())?;
+                            return Ok(());
+                        }
                         SimulatorEvent::KeyDown { keycode, .. } => {
                             match keycode {
                                 Keycode::Q => {
-                                    std::process::exit(0);
+                                    self.controller
+                                        .blocking_send(Control::Shutdown)
+                                        .map_err(|e| e.to_string())?;
+                                    return Ok(());
                                 }
                                 _ => {}
                             }
@@ -88,9 +98,9 @@ impl Gui {
 
                 display.clear(BinaryColor::Off).unwrap();
 
-                let r_u = (r/100_000.) as u32;
+                let r_u = (r / 100_000.) as u32;
                 let r_i = r_u as i32;
-                Circle::new(Point::new(200 - r_i, 100 - r_i), r_u*2)
+                Circle::new(Point::new(200 - r_i, 100 - r_i), r_u * 2)
                     .into_styled(line_style)
                     .draw(&mut display)
                     .unwrap();

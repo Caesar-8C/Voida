@@ -13,7 +13,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install libs
-      run: sudo apt install librust-alsa-sys-dev
+      run: sudo apt install librust-alsa-sys-dev libsdl2-dev
     - name: Build
       run: cargo build --verbose
     - name: Clippy

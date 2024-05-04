@@ -38,21 +38,19 @@ impl From<Celestial> for Body {
 
 #[derive(Clone, Debug)]
 pub struct World {
-    celestials: Celestials,
-    spaceships: HashMap<String, Spaceship>,
-    delta_t: f64,
+    pub celestials: Celestials,
+    pub spaceships: HashMap<String, Spaceship>,
+    // TODO: add true fps counter
 }
 
 impl World {
     pub fn new(
         celestials: Celestials,
         spaceships: HashMap<String, Spaceship>,
-        delta_t: f64,
     ) -> Self {
         Self {
             celestials,
             spaceships,
-            delta_t,
         }
     }
 
@@ -65,14 +63,5 @@ impl World {
             res.insert(key, val.into());
         }
         res
-    }
-
-    pub fn update(&mut self) {
-        for spaceship in self.spaceships.values_mut() {
-            let a = self.celestials.get_global_acceleration(spaceship.pos());
-            spaceship.apply_gravity(a, self.delta_t);
-        }
-
-        self.celestials.update(self.delta_t);
     }
 }
