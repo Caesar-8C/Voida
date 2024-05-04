@@ -40,7 +40,7 @@ impl From<Celestial> for Body {
 pub struct World {
     pub celestials: Celestials,
     pub spaceships: HashMap<String, Spaceship>,
-    // TODO: add true fps counter
+    pub true_sim_fps: u32,
 }
 
 impl World {
@@ -51,6 +51,7 @@ impl World {
         Self {
             celestials,
             spaceships,
+            true_sim_fps: 0,
         }
     }
 

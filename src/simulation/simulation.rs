@@ -2,7 +2,7 @@ use crate::gui::Control;
 use crate::World;
 use std::time::Duration;
 use tokio::sync::{mpsc, watch};
-use tokio::time::interval;
+use tokio::time::{Instant, interval};
 use tokio::sync::mpsc::error::TryRecvError;
 
 pub struct Simulation {
@@ -37,8 +37,17 @@ impl Simulation {
         let mut interval =
             interval(Duration::from_secs_f64(1. / self.simulation_fps as f64));
 
+        let mut start = Instant::now();
+        let mut fps_counter = 0;
+
         loop {
             interval.tick().await;
+            fps_counter += 1;
+            if start.elapsed().as_secs() >= 1 {
+                self.world.true_sim_fps = fps_counter;
+                start = Instant::now();
+                fps_counter = 0;
+            }
 
             loop {
                 match self.control.try_recv() {
