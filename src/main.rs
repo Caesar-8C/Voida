@@ -1,19 +1,16 @@
 mod gui;
 mod simulation;
-mod tui;
 mod utils;
 mod world;
 
-use crate::gui::Gui;
-use crate::simulation::Simulation;
-use crate::tui::window;
-use crate::tui::Tui;
-use crate::world::{config, World};
+use gui::Gui;
+use simulation::Simulation;
 use std::collections::HashMap;
 use std::thread;
 use std::time::Duration;
 use utils::Vec3;
 use world::celestials::Celestial;
+use world::{config, World};
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
@@ -21,7 +18,9 @@ async fn main() -> Result<(), String> {
     let celestials = config::new_solar();
     let mut spaceships = HashMap::new();
     let spaceship = config::iss();
+    let spaceship2 = config::iss2();
     spaceships.insert(spaceship.name(), spaceship);
+    spaceships.insert(spaceship2.name(), spaceship2);
     let world = World::new(celestials, spaceships, delta_t);
     let simulation_period = Duration::from_millis(10);
     let (mut simulation, world_watch) =

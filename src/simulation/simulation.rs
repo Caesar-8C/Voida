@@ -1,9 +1,9 @@
+use crate::simulation::control::Control;
 use crate::World;
 use std::time::Duration;
 use tokio::sync::watch;
 use tokio::sync::watch::{Receiver, Sender};
 use tokio::time::interval;
-use crate::simulation::control::Control;
 
 pub struct Simulation {
     world: World,
@@ -46,7 +46,7 @@ impl Simulation {
 
             self.world_publisher
                 .send(self.world.clone())
-                .map_err(|e| format!("{}", e))?;
+                .map_err(|e| format!("World publisher died: {}", e))?;
         }
     }
 }

@@ -83,3 +83,19 @@ pub fn iss() -> Spaceship {
         iss_vel,
     )
 }
+
+pub fn iss2() -> Spaceship {
+    let earth = earth();
+
+    let iss_name = "ISS2".to_string();
+    let iss_mass = 4.19725_f64 * 10_f64.powi(5);
+    let iss_pos = &earth.pos() + Vec3 { x: 822_000. + earth.rad(), y: 0., z: 0. };
+    let iss_vel = &earth.vel() + Vec3 { x: 0., y: 7660., z: 0. };
+
+    Spaceship::new(
+        iss_name,
+        iss_mass,
+        iss_pos,
+        iss_vel,
+    )
+}
