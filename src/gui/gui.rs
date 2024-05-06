@@ -7,7 +7,9 @@ use embedded_graphics::prelude::{DrawTarget, Point, Primitive, Size};
 use embedded_graphics::primitives::{Circle, PrimitiveStyle, Rectangle};
 use embedded_graphics::text::Text;
 use embedded_graphics::{pixelcolor::BinaryColor, Drawable};
-use embedded_graphics_simulator::sdl2::{Keycode, MouseButton};
+use embedded_graphics_simulator::sdl2::{
+    Keycode, MouseButton, MouseWheelDirection,
+};
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent,
     Window,
@@ -27,6 +29,7 @@ pub struct Gui {
     fps: f64,
     controller: mpsc::Sender<Control>,
     shift: Shift,
+    scale: f64,
 }
 
 impl Gui {
@@ -41,6 +44,7 @@ impl Gui {
                 mouse_y: 0,
                 pressed: false,
             },
+            scale: 100_000.,
         }
     }
 
@@ -127,42 +131,60 @@ impl Gui {
                                 _ => {}
                             }
                         }
-                        SimulatorEvent::MouseButtonDown { mouse_btn, point} => {
+                        SimulatorEvent::MouseButtonDown {
+                            mouse_btn,
+                            point,
+                        } => {
                             if mouse_btn == MouseButton::Middle {
                                 self.shift.mouse_x = point.x as u32;
                                 self.shift.mouse_y = point.y as u32;
                                 self.shift.pressed = true;
                             }
                         }
-                        SimulatorEvent::MouseButtonUp { mouse_btn, ..} => {
+                        SimulatorEvent::MouseButtonUp { mouse_btn, .. } => {
                             if mouse_btn == MouseButton::Middle {
                                 self.shift.pressed = false;
                             }
                         }
                         SimulatorEvent::MouseMove { point } => {
                             if self.shift.pressed {
-                                self.shift.x += point.x - self.shift.mouse_x as i32;
-                                self.shift.y += point.y - self.shift.mouse_y as i32;
+                                self.shift.x +=
+                                    point.x - self.shift.mouse_x as i32;
+                                self.shift.y +=
+                                    point.y - self.shift.mouse_y as i32;
                                 self.shift.mouse_x = point.x as u32;
                                 self.shift.mouse_y = point.y as u32;
                             }
                         }
-                        _ => {}
+                        SimulatorEvent::MouseWheel { scroll_delta, .. } => {
+                            if scroll_delta.y == 1 {
+                                self.scale *= 1.1;
+                            } else if scroll_delta.y == -1 {
+                                self.scale /= 1.1;
+                            }
+                        }
+                        _ => (),
                     }
                 }
 
                 display.clear(BinaryColor::Off).unwrap();
 
-                let r_u = (r / 100_000.) as u32;
+                let r_u = (r / self.scale) as u32;
                 let r_i = r_u as i32;
-                Circle::new(Point::new(200 - r_i + self.shift.x, 100 - r_i + self.shift.y), r_u * 2)
-                    .into_styled(line_style)
-                    .draw(&mut display)
-                    .unwrap();
+                Circle::new(
+                    Point::new(
+                        200 - r_i + self.shift.x,
+                        100 - r_i + self.shift.y,
+                    ),
+                    r_u * 2,
+                )
+                .into_styled(line_style)
+                .draw(&mut display)
+                .unwrap();
                 Rectangle::new(
                     Point::new(
-                        ((x_i - x_e) / 100_000. + 195.) as i32 + self.shift.x,
-                        ((y_e - y_i) / 100_000. + 95.) as i32 + self.shift.y,
+                        ((x_i - x_e) / self.scale + 195.) as i32 + self.shift.x,
+                        ((y_e - y_i) / self.scale + 95.) as i32 + self.shift.y,
                     ),
                     Size::new(10, 10),
                 )
@@ -171,8 +193,8 @@ impl Gui {
                 .unwrap();
                 Rectangle::new(
                     Point::new(
-                        ((x_2 - x_e) / 100_000. + 195.) as i32 + self.shift.x,
-                        ((y_e - y_2) / 100_000. + 95.) as i32 + self.shift.y,
+                        ((x_2 - x_e) / self.scale + 195.) as i32 + self.shift.x,
+                        ((y_e - y_2) / self.scale + 95.) as i32 + self.shift.y,
                     ),
                     Size::new(10, 10),
                 )
