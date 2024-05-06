@@ -18,6 +18,7 @@ pub struct Control {
     sender: mpsc::Sender<ControlMessage>,
     shift: Shift,
     scale: f64,
+    pressed: (i32, i32)
 }
 
 pub enum ControlFlow {
@@ -37,6 +38,7 @@ impl Control {
                 pressed: false,
             },
             scale: 100_000.,
+            pressed: (0, 0),
         }
     }
 
@@ -46,6 +48,10 @@ impl Control {
 
     pub fn scale(&self) -> f64 {
         self.scale
+    }
+
+    pub fn pressed(&self) -> (i32, i32) {
+        self.pressed
     }
 
     pub fn update(&mut self, events: impl Iterator<Item = SimulatorEvent>) -> Result<ControlFlow, String> {
@@ -71,6 +77,9 @@ impl Control {
                         self.shift.mouse_x = point.x as u32;
                         self.shift.mouse_y = point.y as u32;
                         self.shift.pressed = true;
+                    }
+                    if mouse_btn == MouseButton::Left {
+                        self.pressed = (point.x, point.y);
                     }
                 }
                 SimulatorEvent::MouseButtonUp { mouse_btn, .. } => {
