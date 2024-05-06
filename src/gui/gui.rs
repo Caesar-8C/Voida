@@ -3,6 +3,7 @@ use crate::gui::control::{Control, ControlFlow};
 use crate::world::celestials::Celestial;
 use crate::world::spaceship::Spaceship;
 use crate::world::{Body, World};
+use embedded_graphics::geometry::OriginDimensions;
 use embedded_graphics::mono_font::ascii::FONT_6X9;
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::prelude::{DrawTarget, Point, Primitive, Size};
@@ -13,7 +14,6 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
 use std::time::{Duration, Instant};
-use embedded_graphics::geometry::OriginDimensions;
 use tokio::sync::{mpsc, watch};
 
 pub struct Gui {
@@ -76,7 +76,7 @@ impl Gui {
             for body in map.values() {
                 match body {
                     Body::Celestial(c) => {
-                            self.draw_celestial(&mut display, c);
+                        self.draw_celestial(&mut display, c);
                     }
                     Body::Spaceship(s) => {
                         self.draw_spaceship(&mut display, s);
@@ -100,7 +100,11 @@ impl Gui {
             .draw(&mut display)
             .unwrap();
             Text::new(
-                &format!("clicked coords: {} {}", self.control.pressed().0, self.control.pressed().1),
+                &format!(
+                    "clicked coords: {} {}",
+                    self.control.lmb_coords().0,
+                    self.control.lmb_coords().1
+                ),
                 Point::new(2, 20),
                 text_style,
             )
@@ -121,10 +125,11 @@ impl Gui {
         let x = (c.pos().x - self.focus.0) / self.control.scale();
         let y = (c.pos().y - self.focus.1) / self.control.scale();
         let rad = c.rad() / self.control.scale();
-        if x < -width/2. && x + rad < -width/2. ||
-            x > width/2. && x - rad > width/2. ||
-            y < -height/2. && y + rad < -height/2. ||
-            y > height/2. && y - rad > height/2. {
+        if x < -width / 2. && x + rad < -width / 2.
+            || x > width / 2. && x - rad > width / 2.
+            || y < -height / 2. && y + rad < -height / 2.
+            || y > height / 2. && y - rad > height / 2.
+        {
             return;
         }
 

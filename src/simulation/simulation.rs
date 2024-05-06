@@ -53,6 +53,13 @@ impl Simulation {
                 match self.control.try_recv() {
                     Ok(ControlMessage::Shutdown)
                     | Err(TryRecvError::Disconnected) => return Ok(()),
+                    Ok(ControlMessage::Speedup) => {
+                        self.world
+                            .spaceships
+                            .get_mut("ISS2")
+                            .unwrap()
+                            .speedup();
+                    }
                     _ => break,
                 }
             }

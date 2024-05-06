@@ -1,6 +1,6 @@
+use super::celestials::Celestials;
 use super::spaceship::Spaceship;
 use crate::{Celestial, Vec3};
-use super::celestials::Celestials;
 use std::collections::HashMap;
 
 pub enum Body {
@@ -16,7 +16,7 @@ impl Body {
         }
     }
 
-    pub fn name(&self) -> String {
+    pub fn _name(&self) -> String {
         match self {
             Body::Celestial(c) => c.name(),
             Body::Spaceship(ss) => ss.name(),

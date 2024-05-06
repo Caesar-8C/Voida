@@ -4,6 +4,7 @@ use tokio::sync::mpsc;
 
 pub enum ControlMessage {
     Shutdown,
+    Speedup,
 }
 
 pub struct Shift {
@@ -18,7 +19,7 @@ pub struct Control {
     sender: mpsc::Sender<ControlMessage>,
     shift: Shift,
     scale: f64,
-    pressed: (i32, i32)
+    lmb_coords: (i32, i32),
 }
 
 pub enum ControlFlow {
@@ -38,7 +39,7 @@ impl Control {
                 pressed: false,
             },
             scale: 100_000.,
-            pressed: (0, 0),
+            lmb_coords: (0, 0),
         }
     }
 
@@ -50,11 +51,14 @@ impl Control {
         self.scale
     }
 
-    pub fn pressed(&self) -> (i32, i32) {
-        self.pressed
+    pub fn lmb_coords(&self) -> (i32, i32) {
+        self.lmb_coords
     }
 
-    pub fn update(&mut self, events: impl Iterator<Item = SimulatorEvent>) -> Result<ControlFlow, String> {
+    pub fn update(
+        &mut self,
+        events: impl Iterator<Item = SimulatorEvent>,
+    ) -> Result<ControlFlow, String> {
         for event in events {
             match event {
                 SimulatorEvent::Quit => {
@@ -70,6 +74,11 @@ impl Control {
                             .map_err(|e| e.to_string())?;
                         return Ok(ControlFlow::Break);
                     }
+                    Keycode::Up => {
+                        self.sender
+                            .blocking_send(ControlMessage::Speedup)
+                            .map_err(|e| e.to_string())?;
+                    }
                     _ => {}
                 },
                 SimulatorEvent::MouseButtonDown { mouse_btn, point } => {
@@ -79,7 +88,7 @@ impl Control {
                         self.shift.pressed = true;
                     }
                     if mouse_btn == MouseButton::Left {
-                        self.pressed = (point.x, point.y);
+                        self.lmb_coords = (point.x, point.y);
                     }
                 }
                 SimulatorEvent::MouseButtonUp { mouse_btn, .. } => {
