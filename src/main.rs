@@ -7,10 +7,10 @@ use gui::Gui;
 use simulation::Simulation;
 use std::collections::HashMap;
 use std::thread;
+use tokio::sync::mpsc;
 use utils::Vec3;
 use world::celestials::Celestial;
 use world::{config, World};
-use tokio::sync::mpsc;
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
@@ -31,7 +31,9 @@ async fn main() -> Result<(), String> {
         Simulation::new(world, simulation_fps, delta_t, control_receiver);
 
     let gui = Gui::new(20., control_sender);
-    thread::spawn(move || gui.run(world_watch));
+    let gui_handle = thread::spawn(move || gui.run(world_watch));
 
-    simulation.spin().await
+    simulation.spin().await?;
+
+    gui_handle.join().unwrap()
 }

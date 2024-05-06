@@ -3,4 +3,4 @@ mod gui;
 mod control;
 
 pub use gui::Gui;
-pub use control::Control;
+pub use control::ControlMessage;

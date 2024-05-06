@@ -1,15 +1,15 @@
-use crate::gui::Control;
+use crate::gui::ControlMessage;
 use crate::World;
 use std::time::Duration;
-use tokio::sync::{mpsc, watch};
-use tokio::time::{Instant, interval};
 use tokio::sync::mpsc::error::TryRecvError;
+use tokio::sync::{mpsc, watch};
+use tokio::time::{interval, Instant};
 
 pub struct Simulation {
     world: World,
     world_publisher: watch::Sender<World>,
     simulation_fps: u32,
-    control: mpsc::Receiver<Control>,
+    control: mpsc::Receiver<ControlMessage>,
     delta_t: f64,
 }
 
@@ -18,7 +18,7 @@ impl Simulation {
         world: World,
         simulation_fps: u32,
         delta_t: f64,
-        control: mpsc::Receiver<Control>,
+        control: mpsc::Receiver<ControlMessage>,
     ) -> (Self, watch::Receiver<World>) {
         let (world_publisher, world_watch) = watch::channel(world.clone());
         (
@@ -51,14 +51,17 @@ impl Simulation {
 
             loop {
                 match self.control.try_recv() {
-                    Ok(Control::Shutdown) | Err(TryRecvError::Disconnected) => return Ok(()),
+                    Ok(ControlMessage::Shutdown)
+                    | Err(TryRecvError::Disconnected) => return Ok(()),
                     _ => break,
                 }
             }
 
             for spaceship in self.world.spaceships.values_mut() {
-                let a =
-                    self.world.celestials.get_global_acceleration(spaceship.pos());
+                let a = self
+                    .world
+                    .celestials
+                    .get_global_acceleration(spaceship.pos());
                 spaceship.apply_gravity(a, self.delta_t);
             }
             self.world.celestials.update(self.delta_t);

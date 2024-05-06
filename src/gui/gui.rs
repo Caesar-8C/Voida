@@ -1,4 +1,4 @@
-use crate::gui::Control;
+use crate::gui::control::{Control, ControlFlow};
 use crate::world::Body::Celestial;
 use crate::world::World;
 use embedded_graphics::mono_font::ascii::FONT_6X9;
@@ -7,44 +7,24 @@ use embedded_graphics::prelude::{DrawTarget, Point, Primitive, Size};
 use embedded_graphics::primitives::{Circle, PrimitiveStyle, Rectangle};
 use embedded_graphics::text::Text;
 use embedded_graphics::{pixelcolor::BinaryColor, Drawable};
-use embedded_graphics_simulator::sdl2::{
-    Keycode, MouseButton, MouseWheelDirection,
-};
 use embedded_graphics_simulator::{
-    BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent,
+    BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay,
     Window,
 };
 use std::time::{Duration, Instant};
 use tokio::sync::{mpsc, watch};
-
-struct Shift {
-    pub x: i32,
-    pub y: i32,
-    pub mouse_x: u32,
-    pub mouse_y: u32,
-    pub pressed: bool,
-}
+use crate::gui::control::ControlMessage;
 
 pub struct Gui {
     fps: f64,
-    controller: mpsc::Sender<Control>,
-    shift: Shift,
-    scale: f64,
+    control: Control,
 }
 
 impl Gui {
-    pub fn new(fps: f64, controller: mpsc::Sender<Control>) -> Self {
+    pub fn new(fps: f64, control_sender: mpsc::Sender<ControlMessage>) -> Self {
         Self {
             fps,
-            controller,
-            shift: Shift {
-                x: 0,
-                y: 0,
-                mouse_x: 0,
-                mouse_y: 0,
-                pressed: false,
-            },
-            scale: 100_000.,
+            control: Control::new(control_sender),
         }
     }
 
@@ -80,6 +60,10 @@ impl Gui {
                 fps_counter = 0;
             }
 
+            if let ControlFlow::Break = self.control.update(window.events())? {
+                return Ok(());
+            }
+
             let mut x_i = 0.0;
             let mut y_i = 0.0;
             let mut x_2 = 0.0;
@@ -112,69 +96,14 @@ impl Gui {
                     }
                 }
 
-                for event in window.events() {
-                    match event {
-                        SimulatorEvent::Quit => {
-                            self.controller
-                                .blocking_send(Control::Shutdown)
-                                .map_err(|e| e.to_string())?;
-                            return Ok(());
-                        }
-                        SimulatorEvent::KeyDown { keycode, .. } => {
-                            match keycode {
-                                Keycode::Q => {
-                                    self.controller
-                                        .blocking_send(Control::Shutdown)
-                                        .map_err(|e| e.to_string())?;
-                                    return Ok(());
-                                }
-                                _ => {}
-                            }
-                        }
-                        SimulatorEvent::MouseButtonDown {
-                            mouse_btn,
-                            point,
-                        } => {
-                            if mouse_btn == MouseButton::Middle {
-                                self.shift.mouse_x = point.x as u32;
-                                self.shift.mouse_y = point.y as u32;
-                                self.shift.pressed = true;
-                            }
-                        }
-                        SimulatorEvent::MouseButtonUp { mouse_btn, .. } => {
-                            if mouse_btn == MouseButton::Middle {
-                                self.shift.pressed = false;
-                            }
-                        }
-                        SimulatorEvent::MouseMove { point } => {
-                            if self.shift.pressed {
-                                self.shift.x +=
-                                    point.x - self.shift.mouse_x as i32;
-                                self.shift.y +=
-                                    point.y - self.shift.mouse_y as i32;
-                                self.shift.mouse_x = point.x as u32;
-                                self.shift.mouse_y = point.y as u32;
-                            }
-                        }
-                        SimulatorEvent::MouseWheel { scroll_delta, .. } => {
-                            if scroll_delta.y == 1 {
-                                self.scale *= 1.1;
-                            } else if scroll_delta.y == -1 {
-                                self.scale /= 1.1;
-                            }
-                        }
-                        _ => (),
-                    }
-                }
-
                 display.clear(BinaryColor::Off).unwrap();
 
-                let r_u = (r / self.scale) as u32;
+                let r_u = (r / self.control.scale()) as u32;
                 let r_i = r_u as i32;
                 Circle::new(
                     Point::new(
-                        200 - r_i + self.shift.x,
-                        100 - r_i + self.shift.y,
+                        200 - r_i + self.control.shift().x,
+                        100 - r_i + self.control.shift().y,
                     ),
                     r_u * 2,
                 )
@@ -183,8 +112,8 @@ impl Gui {
                 .unwrap();
                 Rectangle::new(
                     Point::new(
-                        ((x_i - x_e) / self.scale + 195.) as i32 + self.shift.x,
-                        ((y_e - y_i) / self.scale + 95.) as i32 + self.shift.y,
+                        ((x_i - x_e) / self.control.scale() + 195.) as i32 + self.control.shift().x,
+                        ((y_e - y_i) / self.control.scale() + 95.) as i32 + self.control.shift().y,
                     ),
                     Size::new(10, 10),
                 )
@@ -193,8 +122,8 @@ impl Gui {
                 .unwrap();
                 Rectangle::new(
                     Point::new(
-                        ((x_2 - x_e) / self.scale + 195.) as i32 + self.shift.x,
-                        ((y_e - y_2) / self.scale + 95.) as i32 + self.shift.y,
+                        ((x_2 - x_e) / self.control.scale() + 195.) as i32 + self.control.shift().x,
+                        ((y_e - y_2) / self.control.scale() + 95.) as i32 + self.control.shift().y,
                     ),
                     Size::new(10, 10),
                 )
