@@ -1,35 +1,39 @@
+mod gui;
 mod simulation;
-mod tui;
 mod utils;
 mod world;
 
-use crate::simulation::Simulation;
-use crate::tui::window;
-use crate::tui::Tui;
-use crate::world::{config, World};
+use gui::Gui;
+use simulation::Simulation;
 use std::collections::HashMap;
-use std::time::Duration;
+use std::thread;
+use tokio::sync::mpsc;
 use utils::Vec3;
 use world::celestials::Celestial;
+use world::{config, World};
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
-    let delta_t = 5_f64;
     let celestials = config::new_solar();
     let mut spaceships = HashMap::new();
     let spaceship = config::iss();
+    let spaceship2 = config::iss2();
     spaceships.insert(spaceship.name(), spaceship);
-    let world = World::new(celestials, spaceships, delta_t);
-    let simulation_period = Duration::from_millis(10);
+    spaceships.insert(spaceship2.name(), spaceship2);
+    let world = World::new(celestials, spaceships);
+    let (control_sender, control_receiver) = mpsc::channel(100);
+
+    let simulation_fps = 100_000;
+    let time_speed = 500.;
+    let delta_t = time_speed / simulation_fps as f64;
+
     let (mut simulation, world_watch) =
-        Simulation::new(world, simulation_period);
+        Simulation::new(world, simulation_fps, delta_t, control_receiver);
 
-    let mut tui = Tui::init(20, 7).await?;
-    tui.add_window(window::plot_test(world_watch.clone()));
-    tui.add_window(window::earth_standard(world_watch.clone()));
-    tui.add_window(window::text_test());
-    tui.add_window(window::iss(world_watch));
-    tokio::spawn(tui.run());
+    let gui = Gui::new(20., control_sender);
+    let gui_handle = thread::spawn(move || gui.run(world_watch));
 
-    simulation.spin().await
+    simulation.spin().await?;
+
+    gui_handle.join().unwrap()
 }

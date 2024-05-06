@@ -1,6 +1,6 @@
+use super::celestials::Celestials;
 use super::spaceship::Spaceship;
 use crate::{Celestial, Vec3};
-use super::celestials::Celestials;
 use std::collections::HashMap;
 
 pub enum Body {
@@ -16,7 +16,7 @@ impl Body {
         }
     }
 
-    pub fn name(&self) -> String {
+    pub fn _name(&self) -> String {
         match self {
             Body::Celestial(c) => c.name(),
             Body::Spaceship(ss) => ss.name(),
@@ -38,21 +38,20 @@ impl From<Celestial> for Body {
 
 #[derive(Clone, Debug)]
 pub struct World {
-    celestials: Celestials,
-    spaceships: HashMap<String, Spaceship>,
-    delta_t: f64,
+    pub celestials: Celestials,
+    pub spaceships: HashMap<String, Spaceship>,
+    pub true_sim_fps: u32,
 }
 
 impl World {
     pub fn new(
         celestials: Celestials,
         spaceships: HashMap<String, Spaceship>,
-        delta_t: f64,
     ) -> Self {
         Self {
             celestials,
             spaceships,
-            delta_t,
+            true_sim_fps: 0,
         }
     }
 
@@ -65,14 +64,5 @@ impl World {
             res.insert(key, val.into());
         }
         res
-    }
-
-    pub fn update(&mut self) {
-        for spaceship in self.spaceships.values_mut() {
-            let a = self.celestials.get_global_acceleration(spaceship.pos());
-            spaceship.apply_gravity(a, self.delta_t);
-        }
-
-        self.celestials.update(self.delta_t);
     }
 }

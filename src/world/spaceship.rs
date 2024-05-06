@@ -34,4 +34,8 @@ impl Spaceship {
         self.vel += acceleration * delta_t;
         self.pos += &self.vel * delta_t;
     }
+
+    pub fn speedup(&mut self) {
+        self.vel.y *= 2.;
+    }
 }
