@@ -14,7 +14,6 @@ use tokio::sync::mpsc;
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
-    let delta_t = 5_f64;
     let celestials = config::new_solar();
     let mut spaceships = HashMap::new();
     let spaceship = config::iss();
@@ -23,7 +22,11 @@ async fn main() -> Result<(), String> {
     spaceships.insert(spaceship2.name(), spaceship2);
     let world = World::new(celestials, spaceships);
     let (control_sender, control_receiver) = mpsc::channel(100);
-    let simulation_fps = 100;
+
+    let simulation_fps = 100_000;
+    let time_speed = 500.;
+    let delta_t = time_speed / simulation_fps as f64;
+
     let (mut simulation, world_watch) =
         Simulation::new(world, simulation_fps, delta_t, control_receiver);
 

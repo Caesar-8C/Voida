@@ -1,31 +1,50 @@
 use crate::gui::Control;
 use crate::world::Body::Celestial;
 use crate::world::World;
+use embedded_graphics::mono_font::ascii::FONT_6X9;
+use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::prelude::{DrawTarget, Point, Primitive, Size};
 use embedded_graphics::primitives::{Circle, PrimitiveStyle, Rectangle};
 use embedded_graphics::text::Text;
 use embedded_graphics::{pixelcolor::BinaryColor, Drawable};
-use embedded_graphics_simulator::sdl2::Keycode;
+use embedded_graphics_simulator::sdl2::{Keycode, MouseButton};
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent,
     Window,
 };
 use std::time::{Duration, Instant};
-use embedded_graphics::mono_font::ascii::FONT_6X9;
-use embedded_graphics::mono_font::MonoTextStyle;
 use tokio::sync::{mpsc, watch};
+
+struct Shift {
+    pub x: i32,
+    pub y: i32,
+    pub mouse_x: u32,
+    pub mouse_y: u32,
+    pub pressed: bool,
+}
 
 pub struct Gui {
     fps: f64,
     controller: mpsc::Sender<Control>,
+    shift: Shift,
 }
 
 impl Gui {
     pub fn new(fps: f64, controller: mpsc::Sender<Control>) -> Self {
-        Self { fps, controller }
+        Self {
+            fps,
+            controller,
+            shift: Shift {
+                x: 0,
+                y: 0,
+                mouse_x: 0,
+                mouse_y: 0,
+                pressed: false,
+            },
+        }
     }
 
-    pub fn run(self, world: watch::Receiver<World>) -> Result<(), String> {
+    pub fn run(mut self, world: watch::Receiver<World>) -> Result<(), String> {
         let mut display =
             SimulatorDisplay::<BinaryColor>::new(Size::new(400, 200));
         let line_style = PrimitiveStyle::with_stroke(BinaryColor::On, 1);
@@ -43,7 +62,6 @@ impl Gui {
         let mut start = Instant::now();
         let mut fps_counter = 0;
         let mut fps_reporter = 0;
-
 
         loop {
             let now = Instant::now();
@@ -109,6 +127,26 @@ impl Gui {
                                 _ => {}
                             }
                         }
+                        SimulatorEvent::MouseButtonDown { mouse_btn, point} => {
+                            if mouse_btn == MouseButton::Middle {
+                                self.shift.mouse_x = point.x as u32;
+                                self.shift.mouse_y = point.y as u32;
+                                self.shift.pressed = true;
+                            }
+                        }
+                        SimulatorEvent::MouseButtonUp { mouse_btn, ..} => {
+                            if mouse_btn == MouseButton::Middle {
+                                self.shift.pressed = false;
+                            }
+                        }
+                        SimulatorEvent::MouseMove { point } => {
+                            if self.shift.pressed {
+                                self.shift.x += point.x - self.shift.mouse_x as i32;
+                                self.shift.y += point.y - self.shift.mouse_y as i32;
+                                self.shift.mouse_x = point.x as u32;
+                                self.shift.mouse_y = point.y as u32;
+                            }
+                        }
                         _ => {}
                     }
                 }
@@ -117,14 +155,14 @@ impl Gui {
 
                 let r_u = (r / 100_000.) as u32;
                 let r_i = r_u as i32;
-                Circle::new(Point::new(200 - r_i, 100 - r_i), r_u * 2)
+                Circle::new(Point::new(200 - r_i + self.shift.x, 100 - r_i + self.shift.y), r_u * 2)
                     .into_styled(line_style)
                     .draw(&mut display)
                     .unwrap();
                 Rectangle::new(
                     Point::new(
-                        ((x_i - x_e) / 100_000. + 195.) as i32,
-                        ((y_e - y_i) / 100_000. + 95.) as i32,
+                        ((x_i - x_e) / 100_000. + 195.) as i32 + self.shift.x,
+                        ((y_e - y_i) / 100_000. + 95.) as i32 + self.shift.y,
                     ),
                     Size::new(10, 10),
                 )
@@ -133,8 +171,8 @@ impl Gui {
                 .unwrap();
                 Rectangle::new(
                     Point::new(
-                        ((x_2 - x_e) / 100_000. + 195.) as i32,
-                        ((y_e - y_2) / 100_000. + 95.) as i32,
+                        ((x_2 - x_e) / 100_000. + 195.) as i32 + self.shift.x,
+                        ((y_e - y_2) / 100_000. + 95.) as i32 + self.shift.y,
                     ),
                     Size::new(10, 10),
                 )
@@ -146,13 +184,15 @@ impl Gui {
                     Point::new(2, 6),
                     text_style,
                 )
-                .draw(&mut display).unwrap();
+                .draw(&mut display)
+                .unwrap();
                 Text::new(
                     &format!("true gui fps: {}", fps_reporter),
                     Point::new(2, 13),
                     text_style,
                 )
-                .draw(&mut display).unwrap();
+                .draw(&mut display)
+                .unwrap();
                 window.update(&display);
             }
         }
