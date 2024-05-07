@@ -24,6 +24,7 @@ pub struct Control {
     sender: mpsc::Sender<ControlMessage>,
     shift: Shift,
     scale: f64,
+    rmb_coords: (i32, i32),
     lmb_coords: (i32, i32),
     change_focus: Option<(i32, i32)>,
 }
@@ -40,6 +41,7 @@ impl Control {
                 pressed: false,
             },
             scale: 100_000.,
+            rmb_coords: (0, 0),
             lmb_coords: (0, 0),
             change_focus: None,
         }
@@ -51,6 +53,10 @@ impl Control {
 
     pub fn scale(&self) -> f64 {
         self.scale
+    }
+
+    pub fn rmb_coords(&self) -> (i32, i32) {
+        self.rmb_coords
     }
 
     pub fn lmb_coords(&self) -> (i32, i32) {
@@ -97,9 +103,10 @@ impl Control {
                             self.shift.pressed = true;
                         }
                         MouseButton::Right => {
-                            self.lmb_coords = (point.x, point.y);
+                            self.rmb_coords = (point.x, point.y);
                         }
                         MouseButton::Left => {
+                            self.lmb_coords = (point.x, point.y);
                             self.change_focus = Some((point.x, point.y));
                         }
                         _ => ()

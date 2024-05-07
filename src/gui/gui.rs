@@ -22,6 +22,7 @@ pub struct Gui {
     control: Control,
     focus: (f64, f64),
     focus_name: String,
+    iss: (f64, f64),
 }
 
 impl Gui {
@@ -31,6 +32,7 @@ impl Gui {
             control: Control::new(control_sender),
             focus: (0., 0.),
             focus_name: "Earth".to_string(),
+            iss: (0., 0.),
         }
     }
 
@@ -104,10 +106,30 @@ impl Gui {
             Text::new(
                 &format!(
                     "clicked coords: {} {}",
-                    self.control.lmb_coords().0,
-                    self.control.lmb_coords().1
+                    self.control.rmb_coords().0,
+                    self.control.rmb_coords().1
                 ),
                 Point::new(2, 20),
+                text_style,
+            )
+            .draw(&mut display)
+            .unwrap();
+            let display_x = self.control.lmb_coords().0;
+            let display_y = self.control.lmb_coords().1;
+            let size = display.size();
+            let x = (display_x - self.control.shift().x - size.width as i32 / 2) as f64 * self.control.scale();
+            let y = (size.height as i32 / 2 - display_y + self.control.shift().y) as f64 * self.control.scale();
+            Text::new(
+                &format!(
+                    "LMB: {:.2} {:.2}, ISS: {:.2} {:.2}, diff: {:.2} {:.2}",
+                    x / 1_000_000.,
+                    y / 1_000_000.,
+                    self.iss.0 / 1_000_000.,
+                    self.iss.1 / 1_000_000.,
+                    (self.iss.0 - x) / 1_000_000.,
+                    (self.iss.1 - y) / 1_000_000.,
+                ),
+                Point::new(2, 27),
                 text_style,
             )
             .draw(&mut display)
@@ -121,16 +143,18 @@ impl Gui {
         let size = display.size();
         if let Some((display_x, display_y)) = self.control.change_focus() {
             let x = (display_x - self.control.shift().x - size.width as i32 / 2) as f64 * self.control.scale() + self.focus.0;
-            let y = (display_y - self.control.shift().y - size.height as i32 / 2) as f64 * self.control.scale() + self.focus.1;
+            let y = (size.height as i32 / 2 - display_y + self.control.shift().y) as f64 * self.control.scale() + self.focus.1;
             let mut min_distance = f64::MAX;
             for (name, body) in map.iter() {
                 let pos = body.pos();
                 let distance = ((pos.x - x).powi(2) + (pos.y - y).powi(2)).sqrt();
                 if distance < min_distance {
                     min_distance = distance;
-                    self.focus_name = name.clone();
+                    // self.focus_name = name.clone();
                 }
             }
+            let iss = map.get("ISS").unwrap().pos();
+            self.iss = (iss.x - self.focus.0, iss.y - self.focus.1);
         }
 
         let focus_pos = map.get(&self.focus_name).unwrap().pos();
