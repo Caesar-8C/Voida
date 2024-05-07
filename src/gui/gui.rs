@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::gui::control::ControlMessage;
 use crate::gui::control::{Control, ControlFlow};
 use crate::world::celestials::Celestial;
@@ -20,6 +21,7 @@ pub struct Gui {
     fps: f64,
     control: Control,
     focus: (f64, f64),
+    focus_name: String,
 }
 
 impl Gui {
@@ -28,6 +30,7 @@ impl Gui {
             fps,
             control: Control::new(control_sender),
             focus: (0., 0.),
+            focus_name: "Earth".to_string(),
         }
     }
 
@@ -70,8 +73,7 @@ impl Gui {
             let world = world.borrow().clone();
             let map = world.get();
 
-            let focus_pos = map.get("Earth").unwrap().pos();
-            self.focus = (focus_pos.x, focus_pos.y);
+            self.get_focus(&map, &display);
 
             for body in map.values() {
                 match body {
@@ -115,6 +117,26 @@ impl Gui {
         }
     }
 
+    fn get_focus(&mut self, map: &HashMap<String, Body>, display: &SimulatorDisplay<BinaryColor>) {
+        let size = display.size();
+        if let Some((display_x, display_y)) = self.control.change_focus() {
+            let x = (display_x - self.control.shift().x - size.width as i32 / 2) as f64 * self.control.scale() + self.focus.0;
+            let y = (display_y - self.control.shift().y - size.height as i32 / 2) as f64 * self.control.scale() + self.focus.1;
+            let mut min_distance = f64::MAX;
+            for (name, body) in map.iter() {
+                let pos = body.pos();
+                let distance = ((pos.x - x).powi(2) + (pos.y - y).powi(2)).sqrt();
+                if distance < min_distance {
+                    min_distance = distance;
+                    self.focus_name = name.clone();
+                }
+            }
+        }
+
+        let focus_pos = map.get(&self.focus_name).unwrap().pos();
+        self.focus = (focus_pos.x, focus_pos.y);
+    }
+
     fn draw_celestial(
         &self,
         display: &mut SimulatorDisplay<BinaryColor>,
@@ -142,11 +164,11 @@ impl Gui {
         Circle::new(
             Point::new(
                 ((c.pos().x - self.focus.0) / self.control.scale()) as i32
-                    + 200
+                    + width as i32 / 2
                     - r_i
                     + self.control.shift().x,
                 ((self.focus.1 - c.pos().y) / self.control.scale()) as i32
-                    + 100
+                    + height as i32 / 2
                     - r_i
                     + self.control.shift().y,
             ),

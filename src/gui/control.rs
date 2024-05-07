@@ -15,16 +15,17 @@ pub struct Shift {
     pub pressed: bool,
 }
 
+pub enum ControlFlow {
+    Continue,
+    Break,
+}
+
 pub struct Control {
     sender: mpsc::Sender<ControlMessage>,
     shift: Shift,
     scale: f64,
     lmb_coords: (i32, i32),
-}
-
-pub enum ControlFlow {
-    Continue,
-    Break,
+    change_focus: Option<(i32, i32)>,
 }
 
 impl Control {
@@ -40,6 +41,7 @@ impl Control {
             },
             scale: 100_000.,
             lmb_coords: (0, 0),
+            change_focus: None,
         }
     }
 
@@ -55,10 +57,16 @@ impl Control {
         self.lmb_coords
     }
 
+    pub fn change_focus(&self) -> Option<(i32, i32)> {
+        self.change_focus
+    }
+
     pub fn update(
         &mut self,
         events: impl Iterator<Item = SimulatorEvent>,
     ) -> Result<ControlFlow, String> {
+        self.change_focus = None;
+
         for event in events {
             match event {
                 SimulatorEvent::Quit => {
@@ -82,13 +90,19 @@ impl Control {
                     _ => {}
                 },
                 SimulatorEvent::MouseButtonDown { mouse_btn, point } => {
-                    if mouse_btn == MouseButton::Middle {
-                        self.shift.mouse_x = point.x as u32;
-                        self.shift.mouse_y = point.y as u32;
-                        self.shift.pressed = true;
-                    }
-                    if mouse_btn == MouseButton::Left {
-                        self.lmb_coords = (point.x, point.y);
+                    match mouse_btn {
+                        MouseButton::Middle => {
+                            self.shift.mouse_x = point.x as u32;
+                            self.shift.mouse_y = point.y as u32;
+                            self.shift.pressed = true;
+                        }
+                        MouseButton::Right => {
+                            self.lmb_coords = (point.x, point.y);
+                        }
+                        MouseButton::Left => {
+                            self.change_focus = Some((point.x, point.y));
+                        }
+                        _ => ()
                     }
                 }
                 SimulatorEvent::MouseButtonUp { mouse_btn, .. } => {
