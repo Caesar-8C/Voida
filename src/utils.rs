@@ -1,3 +1,4 @@
+use approx::AbsDiff;
 use std::ops;
 
 pub const G: f64 = 6.6743_f64 * 0.000_000_000_01;
@@ -37,6 +38,12 @@ impl Vec3 {
             distance: dist,
             unit_direction: Self { x, y, z },
         }
+    }
+
+    pub fn equal_to(&self, other: &Vec3, epsilon: f64) -> bool {
+        AbsDiff::default().epsilon(epsilon).eq(&self.x, &other.x)
+            && AbsDiff::default().epsilon(epsilon).eq(&self.y, &other.y)
+            && AbsDiff::default().epsilon(epsilon).eq(&self.z, &other.z)
     }
 }
 
@@ -115,5 +122,50 @@ impl ops::Mul<&Vec3> for Vec3 {
     type Output = f64;
     fn mul(self, rhs: &Vec3) -> Self::Output {
         self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use approx::assert_abs_diff_eq;
+
+    #[test]
+    fn test_normalize() {
+        let vec = Vec3 {
+            x: 3.0,
+            y: 4.0,
+            z: 0.0,
+        };
+        let norm_vec = vec.normalize();
+
+        assert_abs_diff_eq!(norm_vec.distance_sq, 25.0);
+        assert_abs_diff_eq!(norm_vec.distance_sq, 25.0);
+        assert_abs_diff_eq!(norm_vec.distance, 5.0);
+        assert_abs_diff_eq!(norm_vec.unit_direction.x, 0.6);
+        assert_abs_diff_eq!(norm_vec.unit_direction.y, 0.8);
+        assert_abs_diff_eq!(norm_vec.unit_direction.z, 0.0);
+    }
+
+    #[test]
+    fn test_equal_to() {
+        let vec1 = Vec3 {
+            x: 3.0,
+            y: 4.0,
+            z: 0.0,
+        };
+        let vec2 = Vec3 {
+            x: 3.0,
+            y: 4.0,
+            z: 0.0009,
+        };
+        let vec3 = Vec3 {
+            x: 3.0,
+            y: 4.0,
+            z: 0.0011,
+        };
+
+        assert!(vec1.equal_to(&vec2, 0.001));
+        assert!(!vec1.equal_to(&vec3, 0.001));
     }
 }

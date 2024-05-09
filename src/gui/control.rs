@@ -8,11 +8,9 @@ pub enum ControlMessage {
 }
 
 pub struct Shift {
-    pub x: i32,
-    pub y: i32,
-    pub mouse_x: u32,
-    pub mouse_y: u32,
-    pub pressed: bool,
+    pub x: f64,
+    pub y: f64,
+    pub mouse: Option<(i32, i32)>,
 }
 
 pub enum ControlFlow {
@@ -34,11 +32,9 @@ impl Control {
         Self {
             sender,
             shift: Shift {
-                x: 0,
-                y: 0,
-                mouse_x: 0,
-                mouse_y: 0,
-                pressed: false,
+                x: 0.,
+                y: 0.,
+                mouse: None,
             },
             scale: 100_000.,
             rmb_coords: (0, 0),
@@ -98,9 +94,7 @@ impl Control {
                 SimulatorEvent::MouseButtonDown { mouse_btn, point } => {
                     match mouse_btn {
                         MouseButton::Middle => {
-                            self.shift.mouse_x = point.x as u32;
-                            self.shift.mouse_y = point.y as u32;
-                            self.shift.pressed = true;
+                            self.shift.mouse = Some((point.x, point.y));
                         }
                         MouseButton::Right => {
                             self.rmb_coords = (point.x, point.y);
@@ -109,20 +103,19 @@ impl Control {
                             self.lmb_coords = (point.x, point.y);
                             self.change_focus = Some((point.x, point.y));
                         }
-                        _ => ()
+                        _ => (),
                     }
                 }
                 SimulatorEvent::MouseButtonUp { mouse_btn, .. } => {
                     if mouse_btn == MouseButton::Middle {
-                        self.shift.pressed = false;
+                        self.shift.mouse = None;
                     }
                 }
                 SimulatorEvent::MouseMove { point } => {
-                    if self.shift.pressed {
-                        self.shift.x += point.x - self.shift.mouse_x as i32;
-                        self.shift.y += point.y - self.shift.mouse_y as i32;
-                        self.shift.mouse_x = point.x as u32;
-                        self.shift.mouse_y = point.y as u32;
+                    if let Some((mouse_x, mouse_y)) = self.shift.mouse {
+                        self.shift.x += (point.x - mouse_x) as f64;
+                        self.shift.y += (point.y - mouse_y) as f64;
+                        self.shift.mouse = Some((point.x, point.y));
                     }
                 }
                 SimulatorEvent::MouseWheel { scroll_delta, .. } => {

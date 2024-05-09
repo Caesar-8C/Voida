@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use crate::gui::control::ControlMessage;
 use crate::gui::control::{Control, ControlFlow};
+use crate::utils::Vec3;
 use crate::world::celestials::Celestial;
 use crate::world::spaceship::Spaceship;
 use crate::world::{Body, World};
@@ -14,37 +14,63 @@ use embedded_graphics::{pixelcolor::BinaryColor, Drawable};
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use tokio::sync::{mpsc, watch};
+
+pub struct Camera {
+    pub x_dir: Vec3,
+    pub y_dir: Vec3,
+}
 
 pub struct Gui {
     fps: f64,
     control: Control,
-    focus: (f64, f64),
+    display: SimulatorDisplay<BinaryColor>,
+    camera: Camera,
+    focus: Vec3,
     focus_name: String,
-    iss: (f64, f64),
+    world_watch: watch::Receiver<World>,
 }
 
 impl Gui {
-    pub fn new(fps: f64, control_sender: mpsc::Sender<ControlMessage>) -> Self {
+    pub fn new(
+        fps: f64,
+        world_watch: watch::Receiver<World>,
+        control_sender: mpsc::Sender<ControlMessage>,
+    ) -> Self {
         Self {
             fps,
             control: Control::new(control_sender),
-            focus: (0., 0.),
+            display: SimulatorDisplay::<BinaryColor>::new(Size::new(400, 200)),
+            camera: Camera {
+                x_dir: Vec3 {
+                    x: 1.,
+                    y: 0.,
+                    z: 0.,
+                },
+                y_dir: Vec3 {
+                    x: 0.,
+                    y: 1.,
+                    z: 0.,
+                },
+            },
+            focus: Vec3 {
+                x: 0.,
+                y: 0.,
+                z: 0.,
+            },
             focus_name: "Earth".to_string(),
-            iss: (0., 0.),
+            world_watch,
         }
     }
 
-    pub fn run(mut self, world: watch::Receiver<World>) -> Result<(), String> {
-        let mut display =
-            SimulatorDisplay::<BinaryColor>::new(Size::new(400, 200));
-
+    pub fn run(mut self) -> Result<(), String> {
         let output_settings = OutputSettingsBuilder::new()
             .theme(BinaryColorTheme::OledBlue)
             .build();
         let mut window = Window::new("Voida", &output_settings);
-        window.update(&display);
+        window.update(&mut self.display);
 
         let period = Duration::from_secs_f64(1. / self.fps);
         let mut next_wake = Instant::now();
@@ -70,20 +96,20 @@ impl Gui {
                 return Ok(());
             }
 
-            display.clear(BinaryColor::Off).unwrap();
+            self.display.clear(BinaryColor::Off).unwrap();
 
-            let world = world.borrow().clone();
-            let map = world.get();
+            let world = self.world_watch.borrow().clone();
+            let bodies = world.get_bodies();
 
-            self.get_focus(&map, &display);
+            self.get_focus(&bodies);
 
-            for body in map.values() {
+            for body in bodies.values() {
                 match body {
                     Body::Celestial(c) => {
-                        self.draw_celestial(&mut display, c);
+                        self.draw_celestial(c);
                     }
                     Body::Spaceship(s) => {
-                        self.draw_spaceship(&mut display, s);
+                        self.draw_spaceship(s);
                     }
                 }
             }
@@ -94,82 +120,113 @@ impl Gui {
                 Point::new(2, 6),
                 text_style,
             )
-            .draw(&mut display)
+            .draw(&mut self.display)
             .unwrap();
             Text::new(
                 &format!("true gui fps: {}", fps_reporter),
                 Point::new(2, 13),
                 text_style,
             )
-            .draw(&mut display)
+            .draw(&mut self.display)
             .unwrap();
             Text::new(
                 &format!(
                     "clicked coords: {} {}",
                     self.control.rmb_coords().0,
-                    self.control.rmb_coords().1
+                    self.control.rmb_coords().1,
                 ),
                 Point::new(2, 20),
                 text_style,
             )
-            .draw(&mut display)
+            .draw(&mut self.display)
             .unwrap();
-            let display_x = self.control.lmb_coords().0;
-            let display_y = self.control.lmb_coords().1;
-            let size = display.size();
-            let x = (display_x - self.control.shift().x - size.width as i32 / 2) as f64 * self.control.scale();
-            let y = (size.height as i32 / 2 - display_y + self.control.shift().y) as f64 * self.control.scale();
+            let display_x = self.control.lmb_coords().0 as f64;
+            let display_y = self.control.lmb_coords().1 as f64;
+            let size = self.display.size();
+            let x =
+                (display_x - self.control.shift().x - size.width as f64 / 2.)
+                    * self.control.scale();
+            let y = (size.height as f64 / 2. - display_y
+                + self.control.shift().y)
+                * self.control.scale();
             Text::new(
-                &format!(
-                    "LMB: {:.2} {:.2}, ISS: {:.2} {:.2}, diff: {:.2} {:.2}",
-                    x / 1_000_000.,
-                    y / 1_000_000.,
-                    self.iss.0 / 1_000_000.,
-                    self.iss.1 / 1_000_000.,
-                    (self.iss.0 - x) / 1_000_000.,
-                    (self.iss.1 - y) / 1_000_000.,
-                ),
+                &format!("LMB: {:.2} {:.2}", x / 1_000_000., y / 1_000_000.,),
                 Point::new(2, 27),
                 text_style,
             )
-            .draw(&mut display)
+            .draw(&mut self.display)
             .unwrap();
 
-            window.update(&display);
+            window.update(&self.display);
         }
     }
 
-    fn get_focus(&mut self, map: &HashMap<String, Body>, display: &SimulatorDisplay<BinaryColor>) {
-        let size = display.size();
+    fn frame_to_world(&self, x_frame: f64, y_frame: f64) -> Vec3 {
+        let size = self.display.size();
+        let width = size.width as f64;
+        let height = size.height as f64;
+        let x_world = (x_frame - width / 2. - self.control.shift().x)
+            * self.control.scale()
+            + self.focus.x;
+        let y_world = -(y_frame - height / 2. - self.control.shift().y)
+            * self.control.scale()
+            + self.focus.y;
+        Vec3 {
+            x: x_world,
+            y: y_world,
+            z: 0.,
+        }
+    }
+
+    fn world_to_frame(&self, pos_world: &Vec3) -> (f64, f64) {
+        let size = self.display.size();
+        let width = size.width as f64;
+        let height = size.height as f64;
+        let x_frame = (pos_world.x - &self.focus.x)
+            // * &self.camera.x_dir
+            / self.control.scale()
+            + width / 2.
+            + self.control.shift().x;
+        let y_frame = (&self.focus.y - pos_world.y)
+            // * &self.camera.y_dir
+            / self.control.scale()
+            + height / 2.
+            + self.control.shift().y;
+        (x_frame, y_frame) // casting here is a problem
+    }
+
+    fn get_focus(&mut self, bodies: &HashMap<String, Body>) {
+        let size = self.display.size();
         if let Some((display_x, display_y)) = self.control.change_focus() {
-            let x = (display_x - self.control.shift().x - size.width as i32 / 2) as f64 * self.control.scale() + self.focus.0;
-            let y = (size.height as i32 / 2 - display_y + self.control.shift().y) as f64 * self.control.scale() + self.focus.1;
+            let x = (display_x as f64
+                - self.control.shift().x
+                - size.width as f64 / 2.)
+                * self.control.scale()
+                + self.focus.x;
+            let y = (size.height as f64 / 2. - display_y as f64
+                + self.control.shift().y)
+                * self.control.scale()
+                + self.focus.y;
             let mut min_distance = f64::MAX;
-            for (name, body) in map.iter() {
+            for (name, body) in bodies.iter() {
                 let pos = body.pos();
-                let distance = ((pos.x - x).powi(2) + (pos.y - y).powi(2)).sqrt();
+                let distance =
+                    ((pos.x - x).powi(2) + (pos.y - y).powi(2)).sqrt();
                 if distance < min_distance {
                     min_distance = distance;
-                    // self.focus_name = name.clone();
+                    self.focus_name = name.clone();
                 }
             }
-            let iss = map.get("ISS").unwrap().pos();
-            self.iss = (iss.x - self.focus.0, iss.y - self.focus.1);
         }
 
-        let focus_pos = map.get(&self.focus_name).unwrap().pos();
-        self.focus = (focus_pos.x, focus_pos.y);
+        self.focus = bodies.get(&self.focus_name).unwrap().pos();
     }
 
-    fn draw_celestial(
-        &self,
-        display: &mut SimulatorDisplay<BinaryColor>,
-        c: &Celestial,
-    ) {
-        let size = display.size();
+    fn draw_celestial(&mut self, c: &Celestial) {
+        let size = self.display.size();
         let (width, height) = (size.width as f64, size.height as f64);
-        let x = (c.pos().x - self.focus.0) / self.control.scale();
-        let y = (c.pos().y - self.focus.1) / self.control.scale();
+        let x = (c.pos().x - self.focus.x) / self.control.scale();
+        let y = (c.pos().y - self.focus.y) / self.control.scale();
         let rad = c.rad() / self.control.scale();
         if x < -width / 2. && x + rad < -width / 2.
             || x > width / 2. && x - rad > width / 2.
@@ -187,42 +244,74 @@ impl Gui {
         let r_i = r_u as i32;
         Circle::new(
             Point::new(
-                ((c.pos().x - self.focus.0) / self.control.scale()) as i32
+                ((c.pos().x - self.focus.x) / self.control.scale()) as i32
                     + width as i32 / 2
                     - r_i
-                    + self.control.shift().x,
-                ((self.focus.1 - c.pos().y) / self.control.scale()) as i32
+                    + self.control.shift().x as i32,
+                ((self.focus.y - c.pos().y) / self.control.scale()) as i32
                     + height as i32 / 2
                     - r_i
-                    + self.control.shift().y,
+                    + self.control.shift().y as i32,
             ),
             r_u * 2,
         )
         .into_styled(line_style)
-        .draw(display)
+        .draw(&mut self.display)
         .unwrap();
     }
 
-    fn draw_spaceship(
-        &self,
-        display: &mut SimulatorDisplay<BinaryColor>,
-        s: &Spaceship,
-    ) {
+    fn draw_spaceship(&mut self, s: &Spaceship) {
         let line_style = PrimitiveStyle::with_stroke(BinaryColor::On, 1);
 
         Rectangle::new(
             Point::new(
-                ((s.pos().x - self.focus.0) / self.control.scale() + 195.)
+                ((s.pos().x - self.focus.x) / self.control.scale() + 195.)
                     as i32
-                    + self.control.shift().x,
-                ((self.focus.1 - s.pos().y) / self.control.scale() + 95.)
+                    + self.control.shift().x as i32,
+                ((self.focus.y - s.pos().y) / self.control.scale() + 95.)
                     as i32
-                    + self.control.shift().y,
+                    + self.control.shift().y as i32,
             ),
             Size::new(10, 10),
         )
         .into_styled(line_style)
-        .draw(display)
+        .draw(&mut self.display)
         .unwrap();
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::world::celestials::Celestials;
+    use approx::assert_abs_diff_eq;
+    fn setup() -> Gui {
+        let (control_sender, _) = mpsc::channel(100);
+        let (_, world_receiver) =
+            watch::channel(World::new(Celestials::new(), Default::default()));
+        Gui::new(20., world_receiver, control_sender)
+    }
+
+    #[test]
+    fn test_conversions() {
+        let gui = setup();
+        let pos = Vec3 {
+            x: 1_000_000.,
+            y: 1_000_000.,
+            z: 0.,
+        };
+
+        let (x, y) = gui.world_to_frame(&pos);
+        let pos2 = gui.frame_to_world(x, y);
+        println!("{:?}\n{:?}", pos, pos2);
+        assert!(pos.equal_to(&pos2, 0.001));
+
+        let pos = Vec3 {
+            x: 1.521_f64 * 10_f64.powi(11),
+            y: 1_000_000.,
+            z: 0.,
+        };
+        let (x, _) = gui.world_to_frame(&pos);
+        assert_abs_diff_eq!(x, 1521200.);
     }
 }
