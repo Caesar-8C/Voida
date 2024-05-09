@@ -20,11 +20,11 @@ pub enum ControlFlow {
 
 pub struct Control {
     sender: mpsc::Sender<ControlMessage>,
-    shift: Shift,
-    scale: f64,
-    rmb_coords: (i32, i32),
-    lmb_coords: (i32, i32),
-    change_focus: Option<(i32, i32)>,
+    pub shift: Shift,
+    pub scale: f64,
+    pub rmb_coords: (i32, i32),
+    pub lmb_coords: (i32, i32),
+    pub change_focus: Option<(i32, i32)>,
 }
 
 impl Control {
@@ -41,26 +41,6 @@ impl Control {
             lmb_coords: (0, 0),
             change_focus: None,
         }
-    }
-
-    pub fn shift(&self) -> &Shift {
-        &self.shift
-    }
-
-    pub fn scale(&self) -> f64 {
-        self.scale
-    }
-
-    pub fn rmb_coords(&self) -> (i32, i32) {
-        self.rmb_coords
-    }
-
-    pub fn lmb_coords(&self) -> (i32, i32) {
-        self.lmb_coords
-    }
-
-    pub fn change_focus(&self) -> Option<(i32, i32)> {
-        self.change_focus
     }
 
     pub fn update(
