@@ -5,6 +5,7 @@ use tokio::sync::mpsc;
 pub enum ControlMessage {
     Shutdown,
     Speedup,
+    Pause,
 }
 
 pub struct Shift {
@@ -43,6 +44,12 @@ impl Control {
         }
     }
 
+    fn send(&self, message: ControlMessage) -> Result<(), String> {
+        self.sender
+            .blocking_send(message)
+            .map_err(|e| e.to_string())
+    }
+
     pub fn update(
         &mut self,
         events: impl Iterator<Item = SimulatorEvent>,
@@ -52,22 +59,19 @@ impl Control {
         for event in events {
             match event {
                 SimulatorEvent::Quit => {
-                    self.sender
-                        .blocking_send(ControlMessage::Shutdown)
-                        .map_err(|e| e.to_string())?;
+                    self.send(ControlMessage::Shutdown)?;
                     return Ok(ControlFlow::Break);
                 }
                 SimulatorEvent::KeyDown { keycode, .. } => match keycode {
                     Keycode::Q => {
-                        self.sender
-                            .blocking_send(ControlMessage::Shutdown)
-                            .map_err(|e| e.to_string())?;
+                        self.send(ControlMessage::Shutdown)?;
                         return Ok(ControlFlow::Break);
                     }
                     Keycode::Up => {
-                        self.sender
-                            .blocking_send(ControlMessage::Speedup)
-                            .map_err(|e| e.to_string())?;
+                        self.send(ControlMessage::Speedup)?;
+                    }
+                    Keycode::Space => {
+                        self.send(ControlMessage::Pause)?;
                     }
                     _ => {}
                 },
