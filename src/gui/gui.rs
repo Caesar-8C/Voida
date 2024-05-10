@@ -70,7 +70,7 @@ impl Gui {
             .theme(BinaryColorTheme::OledBlue)
             .build();
         let mut window = Window::new("Voida", &output_settings);
-        window.update(&mut self.display);
+        window.update(&self.display);
 
         let period = Duration::from_secs_f64(1. / self.fps);
         let mut next_wake = Instant::now();
@@ -174,10 +174,10 @@ impl Gui {
         let size = self.display.size();
         let width = size.width as f64;
         let height = size.height as f64;
-        let x_frame = (pos_world.x - &self.focus.x + self.control.shift.x)
+        let x_frame = (pos_world.x - self.focus.x + self.control.shift.x)
             // * &self.camera.x_dir
             / self.control.scale;
-        let y_frame = (pos_world.y - &self.focus.y + self.control.shift.y)
+        let y_frame = (pos_world.y - self.focus.y + self.control.shift.y)
             // * &self.camera.y_dir
             / self.control.scale;
         let x_display = x_frame + width / 2.;
@@ -186,25 +186,16 @@ impl Gui {
     }
 
     fn get_focus(&mut self, bodies: &HashMap<String, Body>) {
-        let size = self.display.size();
         if let Some((display_x, display_y)) = self.control.change_focus {
-            let x = (display_x as f64
-                - self.control.shift.x
-                - size.width as f64 / 2.)
-                * self.control.scale
-                + self.focus.x;
-            let y = (size.height as f64 / 2. - display_y as f64
-                + self.control.shift.y)
-                * self.control.scale
-                + self.focus.y;
-            let mut min_distance = f64::MAX;
+            let click = self.display_to_world(display_x as f64, display_y as f64);
+            let mut min_sq_distance = f64::MAX;
             for (name, body) in bodies.iter() {
                 let pos = body.pos();
-                let distance =
-                    ((pos.x - x).powi(2) + (pos.y - y).powi(2)).sqrt();
-                if distance < min_distance {
-                    min_distance = distance;
-                    self.focus_name = name.clone();
+                let sq_distance =
+                    (pos.x - click.x).powi(2) + (pos.y - click.y).powi(2);
+                if sq_distance < min_sq_distance {
+                    min_sq_distance = sq_distance;
+                    self.focus_name.clone_from(name);
                 }
             }
         }
