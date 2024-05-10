@@ -93,8 +93,8 @@ impl Control {
                 }
                 SimulatorEvent::MouseMove { point } => {
                     if let Some((mouse_x, mouse_y)) = self.shift.mouse {
-                        self.shift.x += (point.x - mouse_x) as f64;
-                        self.shift.y += (point.y - mouse_y) as f64;
+                        self.shift.x += (point.x - mouse_x) as f64 * self.scale;
+                        self.shift.y += (mouse_y - point.y) as f64 * self.scale;
                         self.shift.mouse = Some((point.x, point.y));
                     }
                 }

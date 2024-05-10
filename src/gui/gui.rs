@@ -131,14 +131,15 @@ impl Gui {
             .unwrap();
             let display_x = self.control.rmb_coords.0 as f64;
             let display_y = self.control.rmb_coords.1 as f64;
-            let vec = self.frame_to_world(display_x, display_y);
+            let vec = self.display_to_world(display_x, display_y);
+            let e = bodies.get(&self.focus_name).unwrap().pos();
             Text::new(
                 &format!(
                     "rmb: {} {}, {:.2} {:.2}",
                     display_x,
                     display_y,
-                    vec.x / self.control.scale,
-                    vec.y / self.control.scale,
+                    vec.x - e.x,
+                    vec.y - e.y,
                 ),
                 Point::new(2, 20),
                 text_style,
@@ -150,16 +151,18 @@ impl Gui {
         }
     }
 
-    fn frame_to_world(&self, x_frame: f64, y_frame: f64) -> Vec3 {
+    fn display_to_world(&self, x_display: f64, y_display: f64) -> Vec3 {
         let size = self.display.size();
         let width = size.width as f64;
         let height = size.height as f64;
-        let x_world = (x_frame - width / 2. - self.control.shift.x)
-            * self.control.scale
-            + self.focus.x;
-        let y_world = -(y_frame - height / 2. - self.control.shift.y)
-            * self.control.scale
-            + self.focus.y;
+
+        let x_frame = x_display - width / 2.;
+        let y_frame = height / 2. - y_display;
+
+        let x_world =
+            x_frame * self.control.scale + self.focus.x - self.control.shift.x;
+        let y_world =
+            y_frame * self.control.scale + self.focus.y - self.control.shift.y;
         Vec3 {
             x: x_world,
             y: y_world,
@@ -167,21 +170,19 @@ impl Gui {
         }
     }
 
-    fn world_to_frame(&self, pos_world: &Vec3) -> (f64, f64) {
+    fn world_to_display(&self, pos_world: &Vec3) -> (f64, f64) {
         let size = self.display.size();
         let width = size.width as f64;
         let height = size.height as f64;
-        let x_frame = (pos_world.x - &self.focus.x)
+        let x_frame = (pos_world.x - &self.focus.x + self.control.shift.x)
             // * &self.camera.x_dir
-            / self.control.scale
-            + width / 2.
-            + self.control.shift.x;
-        let y_frame = (&self.focus.y - pos_world.y)
+            / self.control.scale;
+        let y_frame = (pos_world.y - &self.focus.y + self.control.shift.y)
             // * &self.camera.y_dir
-            / self.control.scale
-            + height / 2.
-            + self.control.shift.y;
-        (x_frame, y_frame)
+            / self.control.scale;
+        let x_display = x_frame + width / 2.;
+        let y_display = height / 2. - y_frame;
+        (x_display, y_display)
     }
 
     fn get_focus(&mut self, bodies: &HashMap<String, Body>) {
@@ -214,12 +215,12 @@ impl Gui {
     fn draw_celestial(&mut self, c: &Celestial) {
         let size = self.display.size();
         let (width, height) = (size.width as f64, size.height as f64);
-        let (x, y) = self.world_to_frame(&c.pos());
+        let (x, y) = self.world_to_display(&c.pos());
         let rad = c.rad() / self.control.scale;
-        if x < -width / 2. && x + rad < -width / 2.
-            || x > width / 2. && x - rad > width / 2.
-            || y < -height / 2. && y + rad < -height / 2.
-            || y > height / 2. && y - rad > height / 2.
+        if x < 0. && x + rad < 0.
+            || x > width && x - rad > width
+            || y < 0. && y + rad < 0.
+            || y > height && y - rad > height
         {
             return;
         }
@@ -230,50 +231,29 @@ impl Gui {
             r_u = 1;
         }
         let r_i = r_u as i32;
-        Circle::new(
-            Point::new(
-                ((c.pos().x - self.focus.x) / self.control.scale) as i32
-                    + width as i32 / 2
-                    - r_i
-                    + self.control.shift.x as i32,
-                ((self.focus.y - c.pos().y) / self.control.scale) as i32
-                    + height as i32 / 2
-                    - r_i
-                    + self.control.shift.y as i32,
-            ),
-            r_u * 2,
-        )
-        .into_styled(line_style)
-        .draw(&mut self.display)
-        .unwrap();
+        Circle::new(Point::new(x as i32 - r_i, y as i32 - r_i), r_u * 2)
+            .into_styled(line_style)
+            .draw(&mut self.display)
+            .unwrap();
     }
 
     fn draw_spaceship(&mut self, s: &Spaceship) {
         let line_style = PrimitiveStyle::with_stroke(BinaryColor::On, 1);
 
-        Rectangle::new(
-            Point::new(
-                ((s.pos().x - self.focus.x) / self.control.scale + 195.)
-                    as i32
-                    + self.control.shift.x as i32,
-                ((self.focus.y - s.pos().y) / self.control.scale + 95.)
-                    as i32
-                    + self.control.shift.y as i32,
-            ),
-            Size::new(10, 10),
-        )
-        .into_styled(line_style)
-        .draw(&mut self.display)
-        .unwrap();
+        let (x, y) = self.world_to_display(&s.pos());
+        Rectangle::new(Point::new(x as i32 - 5, y as i32 - 5), Size::new(10, 10))
+            .into_styled(line_style)
+            .draw(&mut self.display)
+            .unwrap();
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::gui::control::Shift;
     use crate::world::celestials::Celestials;
     use approx::assert_abs_diff_eq;
-    use crate::gui::control::Shift;
 
     fn setup() -> Gui {
         let (control_sender, _) = mpsc::channel(100);
@@ -291,16 +271,15 @@ mod test {
             z: 0.,
         };
 
-        gui.control.scale = 1.5;
+        gui.control.scale = 150_000.;
         gui.control.shift = Shift {
-            x: 1.,
-            y: 315.,
+            x: 315.,
+            y: 1.,
             mouse: None,
         };
 
-        let (x, y) = gui.world_to_frame(&pos);
-        let pos2 = gui.frame_to_world(x, y);
-        println!("{:?}\n{:?}", pos, pos2);
+        let (x, y) = gui.world_to_display(&pos);
+        let pos2 = gui.display_to_world(x, y);
         assert!(pos.equal_to(&pos2, 0.001));
 
         let pos = Vec3 {
@@ -308,7 +287,7 @@ mod test {
             y: 1_000_000.,
             z: 0.,
         };
-        let (x, _) = gui.world_to_frame(&pos);
-        assert_abs_diff_eq!(x, 1521200.);
+        let (x, _) = gui.world_to_display(&pos);
+        assert_abs_diff_eq!(x, 1014200.0021);
     }
 }
