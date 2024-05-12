@@ -8,17 +8,17 @@ use tokio::time::{interval, Instant};
 pub struct Simulation {
     world: World,
     world_publisher: watch::Sender<World>,
-    simulation_fps: u32,
     control: mpsc::Receiver<ControlMessage>,
+    time_speed: f64,
+    simulation_fps: u32,
     delta_t: f64,
-    paused: bool,
 }
 
 impl Simulation {
     pub fn new(
         world: World,
         simulation_fps: u32,
-        delta_t: f64,
+        time_speed: f64,
         control: mpsc::Receiver<ControlMessage>,
     ) -> (Self, watch::Receiver<World>) {
         let (world_publisher, world_watch) = watch::channel(world.clone());
@@ -26,10 +26,10 @@ impl Simulation {
             Self {
                 world,
                 world_publisher,
-                simulation_fps,
                 control,
-                delta_t,
-                paused: false,
+                time_speed,
+                simulation_fps,
+                delta_t: time_speed / simulation_fps as f64,
             },
             world_watch,
         )
@@ -62,13 +62,12 @@ impl Simulation {
                             .unwrap()
                             .speedup();
                     }
-                    Ok(ControlMessage::Pause) => self.paused = !self.paused,
+                    Ok(ControlMessage::SetTimeSpeed(speed)) => {
+                        self.time_speed = speed;
+                        self.delta_t = self.time_speed / self.simulation_fps as f64;
+                    },
                     _ => break,
                 }
-            }
-
-            if self.paused {
-                continue;
             }
 
             for spaceship in self.world.spaceships.values_mut() {
