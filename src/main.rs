@@ -25,10 +25,9 @@ async fn main() -> Result<(), String> {
 
     let simulation_fps = 100_000;
     let time_speed = 500.;
-    let delta_t = time_speed / simulation_fps as f64;
 
     let (mut simulation, world_watch) =
-        Simulation::new(world, simulation_fps, delta_t, control_receiver);
+        Simulation::new(world, simulation_fps, time_speed, control_receiver);
 
     let gui = Gui::new(20., world_watch, control_sender);
     let gui_handle = thread::spawn(move || gui.run());

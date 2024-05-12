@@ -7,7 +7,7 @@ use tokio::sync::mpsc;
 pub enum ControlMessage {
     Shutdown,
     Speedup,
-    Pause,
+    SetTimeSpeed(f64),
 }
 
 pub struct Shift {
@@ -77,7 +77,16 @@ impl Control {
                         self.send(ControlMessage::Speedup)?;
                     }
                     Keycode::Space => {
-                        self.send(ControlMessage::Pause)?;
+                        self.send(ControlMessage::SetTimeSpeed(0.))?;
+                    }
+                    Keycode::Num1 => {
+                        self.send(ControlMessage::SetTimeSpeed(1.))?;
+                    }
+                    Keycode::Num2 => {
+                        self.send(ControlMessage::SetTimeSpeed(200.))?;
+                    }
+                    Keycode::Num3 => {
+                        self.send(ControlMessage::SetTimeSpeed(500.))?;
                     }
                     _ => {}
                 },
