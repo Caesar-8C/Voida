@@ -66,7 +66,7 @@ impl Simulation {
                     _ => break,
                 }
             }
-            
+
             if self.paused {
                 continue;
             }

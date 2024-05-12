@@ -1,4 +1,5 @@
 use approx::AbsDiff;
+use nalgebra::Matrix3;
 use std::ops;
 
 pub const G: f64 = 6.6743_f64 * 0.000_000_000_01;
@@ -47,6 +48,17 @@ impl Vec3 {
     }
 }
 
+impl ops::Div<f64> for Vec3 {
+    type Output = Vec3;
+    fn div(self, rhs: f64) -> Self::Output {
+        Vec3 {
+            x: self.x / rhs,
+            y: self.y / rhs,
+            z: self.z / rhs,
+        }
+    }
+}
+
 impl ops::Mul<f64> for Vec3 {
     type Output = Vec3;
     fn mul(self, rhs: f64) -> Self::Output {
@@ -77,9 +89,45 @@ impl ops::MulAssign<f64> for Vec3 {
     }
 }
 
+impl ops::Mul<&Vec3> for Vec3 {
+    type Output = f64;
+    fn mul(self, rhs: &Vec3) -> Self::Output {
+        self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
+    }
+}
+
+impl ops::Mul<&Vec3> for &Vec3 {
+    type Output = f64;
+    fn mul(self, rhs: &Vec3) -> Self::Output {
+        self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
+    }
+}
+
+impl ops::Mul<&Vec3> for &Matrix3<f64> {
+    type Output = Vec3;
+    fn mul(self, rhs: &Vec3) -> Self::Output {
+        Vec3 {
+            x: self[(0, 0)] * rhs.x + self[(0, 1)] * rhs.y + self[(0, 2)] * rhs.z,
+            y: self[(1, 0)] * rhs.x + self[(1, 1)] * rhs.y + self[(1, 2)] * rhs.z,
+            z: self[(2, 0)] * rhs.x + self[(2, 1)] * rhs.y + self[(2, 2)] * rhs.z,
+        }
+    }
+}
+
 impl ops::Add<Vec3> for &Vec3 {
     type Output = Vec3;
     fn add(self, rhs: Vec3) -> Self::Output {
+        Vec3 {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
+        }
+    }
+}
+
+impl ops::Add<&Vec3> for Vec3 {
+    type Output = Vec3;
+    fn add(self, rhs: &Vec3) -> Self::Output {
         Vec3 {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
@@ -118,13 +166,6 @@ impl ops::Sub<&Vec3> for &Vec3 {
     }
 }
 
-impl ops::Mul<&Vec3> for Vec3 {
-    type Output = f64;
-    fn mul(self, rhs: &Vec3) -> Self::Output {
-        self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -139,7 +180,6 @@ mod test {
         };
         let norm_vec = vec.normalize();
 
-        assert_abs_diff_eq!(norm_vec.distance_sq, 25.0);
         assert_abs_diff_eq!(norm_vec.distance_sq, 25.0);
         assert_abs_diff_eq!(norm_vec.distance, 5.0);
         assert_abs_diff_eq!(norm_vec.unit_direction.x, 0.6);

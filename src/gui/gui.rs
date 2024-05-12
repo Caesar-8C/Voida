@@ -18,16 +18,10 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use tokio::sync::{mpsc, watch};
 
-pub struct Camera {
-    pub x_dir: Vec3,
-    pub y_dir: Vec3,
-}
-
 pub struct Gui {
     fps: f64,
     control: Control,
     display: SimulatorDisplay<BinaryColor>,
-    camera: Camera,
     focus: Vec3,
     focus_name: String,
     world_watch: watch::Receiver<World>,
@@ -43,18 +37,6 @@ impl Gui {
             fps,
             control: Control::new(control_sender),
             display: SimulatorDisplay::<BinaryColor>::new(Size::new(400, 200)),
-            camera: Camera {
-                x_dir: Vec3 {
-                    x: 1.,
-                    y: 0.,
-                    z: 0.,
-                },
-                y_dir: Vec3 {
-                    x: 0.,
-                    y: 1.,
-                    z: 0.,
-                },
-            },
             focus: Vec3 {
                 x: 0.,
                 y: 0.,
@@ -159,40 +141,40 @@ impl Gui {
         let x_frame = x_display - width / 2.;
         let y_frame = height / 2. - y_display;
 
-        let x_world =
-            x_frame * self.control.scale + self.focus.x - self.control.shift.x;
-        let y_world =
-            y_frame * self.control.scale + self.focus.y - self.control.shift.y;
-        Vec3 {
-            x: x_world,
-            y: y_world,
-            z: 0.,
-        }
+        let look_at = &self.control.camera_extr_inv
+            * &Vec3 {
+                x: x_frame,
+                y: y_frame,
+                z: 0.,
+            };
+
+        look_at * self.control.scale + &self.focus - &self.control.shift.pos
     }
 
     fn world_to_display(&self, pos_world: &Vec3) -> (f64, f64) {
         let size = self.display.size();
         let width = size.width as f64;
         let height = size.height as f64;
-        let x_frame = (pos_world.x - self.focus.x + self.control.shift.x)
-            // * &self.camera.x_dir
+
+        let look_at = (pos_world - &self.focus + &self.control.shift.pos)
             / self.control.scale;
-        let y_frame = (pos_world.y - self.focus.y + self.control.shift.y)
-            // * &self.camera.y_dir
-            / self.control.scale;
-        let x_display = x_frame + width / 2.;
-        let y_display = height / 2. - y_frame;
+        let frame = &self.control.camera_extr * &look_at;
+
+        let x_display = frame.x + width / 2.;
+        let y_display = height / 2. - frame.y;
         (x_display, y_display)
     }
 
     fn get_focus(&mut self, bodies: &HashMap<String, Body>) {
         if let Some((display_x, display_y)) = self.control.change_focus {
-            let click = self.display_to_world(display_x as f64, display_y as f64);
+            let click =
+                self.display_to_world(display_x as f64, display_y as f64);
             let mut min_sq_distance = f64::MAX;
             for (name, body) in bodies.iter() {
                 let pos = body.pos();
-                let sq_distance =
-                    (pos.x - click.x).powi(2) + (pos.y - click.y).powi(2);
+                let sq_distance = (pos.x - click.x).powi(2)
+                    + (pos.y - click.y).powi(2)
+                    + (pos.z - click.z).powi(2);
                 if sq_distance < min_sq_distance {
                     min_sq_distance = sq_distance;
                     self.focus_name.clone_from(name);
@@ -208,11 +190,7 @@ impl Gui {
         let (width, height) = (size.width as f64, size.height as f64);
         let (x, y) = self.world_to_display(&c.pos());
         let rad = c.rad() / self.control.scale;
-        if x < 0. && x + rad < 0.
-            || x > width && x - rad > width
-            || y < 0. && y + rad < 0.
-            || y > height && y - rad > height
-        {
+        if x + rad < 0. || x - rad > width || y + rad < 0. || y - rad > height {
             return;
         }
 
@@ -232,10 +210,13 @@ impl Gui {
         let line_style = PrimitiveStyle::with_stroke(BinaryColor::On, 1);
 
         let (x, y) = self.world_to_display(&s.pos());
-        Rectangle::new(Point::new(x as i32 - 5, y as i32 - 5), Size::new(10, 10))
-            .into_styled(line_style)
-            .draw(&mut self.display)
-            .unwrap();
+        Rectangle::new(
+            Point::new(x as i32 - 5, y as i32 - 5),
+            Size::new(10, 10),
+        )
+        .into_styled(line_style)
+        .draw(&mut self.display)
+        .unwrap();
     }
 }
 
@@ -264,8 +245,11 @@ mod test {
 
         gui.control.scale = 150_000.;
         gui.control.shift = Shift {
-            x: 315.,
-            y: 1.,
+            pos: Vec3 {
+                x: 315.,
+                y: 1.,
+                z: 0.,
+            },
             mouse: None,
         };
 

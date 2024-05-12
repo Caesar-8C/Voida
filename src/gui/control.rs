@@ -1,5 +1,7 @@
+use crate::utils::Vec3;
 use embedded_graphics_simulator::sdl2::{Keycode, MouseButton};
 use embedded_graphics_simulator::SimulatorEvent;
+use nalgebra::Matrix3;
 use tokio::sync::mpsc;
 
 pub enum ControlMessage {
@@ -9,8 +11,7 @@ pub enum ControlMessage {
 }
 
 pub struct Shift {
-    pub x: f64,
-    pub y: f64,
+    pub pos: Vec3,
     pub mouse: Option<(i32, i32)>,
 }
 
@@ -23,8 +24,9 @@ pub struct Control {
     sender: mpsc::Sender<ControlMessage>,
     pub shift: Shift,
     pub scale: f64,
+    pub camera_extr: Matrix3<f64>,
+    pub camera_extr_inv: Matrix3<f64>,
     pub rmb_coords: (i32, i32),
-    pub lmb_coords: (i32, i32),
     pub change_focus: Option<(i32, i32)>,
 }
 
@@ -33,13 +35,17 @@ impl Control {
         Self {
             sender,
             shift: Shift {
-                x: 0.,
-                y: 0.,
+                pos: Vec3 {
+                    x: 0.,
+                    y: 0.,
+                    z: 0.,
+                },
                 mouse: None,
             },
             scale: 100_000.,
+            camera_extr: Matrix3::identity(),
+            camera_extr_inv: Matrix3::identity(),
             rmb_coords: (0, 0),
-            lmb_coords: (0, 0),
             change_focus: None,
         }
     }
@@ -84,7 +90,6 @@ impl Control {
                             self.rmb_coords = (point.x, point.y);
                         }
                         MouseButton::Left => {
-                            self.lmb_coords = (point.x, point.y);
                             self.change_focus = Some((point.x, point.y));
                         }
                         _ => (),
@@ -97,8 +102,13 @@ impl Control {
                 }
                 SimulatorEvent::MouseMove { point } => {
                     if let Some((mouse_x, mouse_y)) = self.shift.mouse {
-                        self.shift.x += (point.x - mouse_x) as f64 * self.scale;
-                        self.shift.y += (mouse_y - point.y) as f64 * self.scale;
+                        self.shift.pos += &self.camera_extr_inv
+                            * &Vec3 {
+                                x: (point.x - mouse_x) as f64,
+                                y: (mouse_y - point.y) as f64,
+                                z: 0.,
+                            }
+                            * self.scale;
                         self.shift.mouse = Some((point.x, point.y));
                     }
                 }
