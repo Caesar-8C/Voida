@@ -1,3 +1,5 @@
+use approx::AbsDiff;
+use nalgebra::Matrix3;
 use std::ops;
 
 pub const G: f64 = 6.6743_f64 * 0.000_000_000_01;
@@ -38,6 +40,23 @@ impl Vec3 {
             unit_direction: Self { x, y, z },
         }
     }
+
+    pub fn equal_to(&self, other: &Vec3, epsilon: f64) -> bool {
+        AbsDiff::default().epsilon(epsilon).eq(&self.x, &other.x)
+            && AbsDiff::default().epsilon(epsilon).eq(&self.y, &other.y)
+            && AbsDiff::default().epsilon(epsilon).eq(&self.z, &other.z)
+    }
+}
+
+impl ops::Div<f64> for Vec3 {
+    type Output = Vec3;
+    fn div(self, rhs: f64) -> Self::Output {
+        Vec3 {
+            x: self.x / rhs,
+            y: self.y / rhs,
+            z: self.z / rhs,
+        }
+    }
 }
 
 impl ops::Mul<f64> for Vec3 {
@@ -70,9 +89,45 @@ impl ops::MulAssign<f64> for Vec3 {
     }
 }
 
+impl ops::Mul<&Vec3> for Vec3 {
+    type Output = f64;
+    fn mul(self, rhs: &Vec3) -> Self::Output {
+        self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
+    }
+}
+
+impl ops::Mul<&Vec3> for &Vec3 {
+    type Output = f64;
+    fn mul(self, rhs: &Vec3) -> Self::Output {
+        self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
+    }
+}
+
+impl ops::Mul<&Vec3> for &Matrix3<f64> {
+    type Output = Vec3;
+    fn mul(self, rhs: &Vec3) -> Self::Output {
+        Vec3 {
+            x: self[(0, 0)] * rhs.x + self[(0, 1)] * rhs.y + self[(0, 2)] * rhs.z,
+            y: self[(1, 0)] * rhs.x + self[(1, 1)] * rhs.y + self[(1, 2)] * rhs.z,
+            z: self[(2, 0)] * rhs.x + self[(2, 1)] * rhs.y + self[(2, 2)] * rhs.z,
+        }
+    }
+}
+
 impl ops::Add<Vec3> for &Vec3 {
     type Output = Vec3;
     fn add(self, rhs: Vec3) -> Self::Output {
+        Vec3 {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
+        }
+    }
+}
+
+impl ops::Add<&Vec3> for Vec3 {
+    type Output = Vec3;
+    fn add(self, rhs: &Vec3) -> Self::Output {
         Vec3 {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
@@ -111,9 +166,46 @@ impl ops::Sub<&Vec3> for &Vec3 {
     }
 }
 
-impl ops::Mul<&Vec3> for Vec3 {
-    type Output = f64;
-    fn mul(self, rhs: &Vec3) -> Self::Output {
-        self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
+#[cfg(test)]
+mod test {
+    use super::*;
+    use approx::assert_abs_diff_eq;
+
+    #[test]
+    fn test_normalize() {
+        let vec = Vec3 {
+            x: 3.0,
+            y: 4.0,
+            z: 0.0,
+        };
+        let norm_vec = vec.normalize();
+
+        assert_abs_diff_eq!(norm_vec.distance_sq, 25.0);
+        assert_abs_diff_eq!(norm_vec.distance, 5.0);
+        assert_abs_diff_eq!(norm_vec.unit_direction.x, 0.6);
+        assert_abs_diff_eq!(norm_vec.unit_direction.y, 0.8);
+        assert_abs_diff_eq!(norm_vec.unit_direction.z, 0.0);
+    }
+
+    #[test]
+    fn test_equal_to() {
+        let vec1 = Vec3 {
+            x: 3.0,
+            y: 4.0,
+            z: 0.0,
+        };
+        let vec2 = Vec3 {
+            x: 3.0,
+            y: 4.0,
+            z: 0.0009,
+        };
+        let vec3 = Vec3 {
+            x: 3.0,
+            y: 4.0,
+            z: 0.0011,
+        };
+
+        assert!(vec1.equal_to(&vec2, 0.001));
+        assert!(!vec1.equal_to(&vec3, 0.001));
     }
 }

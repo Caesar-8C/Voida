@@ -55,7 +55,7 @@ impl World {
         }
     }
 
-    pub fn get(&self) -> HashMap<String, Body> {
+    pub fn get_bodies(&self) -> HashMap<String, Body> {
         let mut res: HashMap<String, Body> = HashMap::new();
         for (key, val) in self.celestials.get() {
             res.insert(key, val.into());

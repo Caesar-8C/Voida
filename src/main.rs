@@ -30,8 +30,8 @@ async fn main() -> Result<(), String> {
     let (mut simulation, world_watch) =
         Simulation::new(world, simulation_fps, delta_t, control_receiver);
 
-    let gui = Gui::new(20., control_sender);
-    let gui_handle = thread::spawn(move || gui.run(world_watch));
+    let gui = Gui::new(20., world_watch, control_sender);
+    let gui_handle = thread::spawn(move || gui.run());
 
     simulation.spin().await?;
 

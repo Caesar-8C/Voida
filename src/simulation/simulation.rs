@@ -11,6 +11,7 @@ pub struct Simulation {
     simulation_fps: u32,
     control: mpsc::Receiver<ControlMessage>,
     delta_t: f64,
+    paused: bool,
 }
 
 impl Simulation {
@@ -28,6 +29,7 @@ impl Simulation {
                 simulation_fps,
                 control,
                 delta_t,
+                paused: false,
             },
             world_watch,
         )
@@ -60,8 +62,13 @@ impl Simulation {
                             .unwrap()
                             .speedup();
                     }
+                    Ok(ControlMessage::Pause) => self.paused = !self.paused,
                     _ => break,
                 }
+            }
+
+            if self.paused {
+                continue;
             }
 
             for spaceship in self.world.spaceships.values_mut() {
