@@ -45,7 +45,7 @@ impl Control {
             scale: 100_000.,
             camera_extr: Matrix3::identity(),
             camera_extr_inv: Matrix3::identity(),
-            rmb_coords: (0, 0),
+            rmb_coords: (200, 100),
             change_focus: None,
         }
     }

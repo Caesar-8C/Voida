@@ -14,6 +14,7 @@ use embedded_graphics::{pixelcolor::BinaryColor, Drawable};
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
+use nalgebra::Point2;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use tokio::sync::{mpsc, watch};
@@ -190,15 +191,22 @@ impl Gui {
         let (width, height) = (size.width as f64, size.height as f64);
         let (x, y) = self.world_to_display(&c.pos());
         let rad = c.rad() / self.control.scale;
-        if x + rad < 0. || x - rad > width || y + rad < 0. || y - rad > height {
+
+        let a = Point2::new(x, y);
+        let b = Point2::new(width / 2., height / 2.);
+        let closest = a + (b - a).normalize() * rad;
+
+        if closest.x < 0.
+            || closest.x > width
+            || closest.y < 0.
+            || closest.y > height
+            || rad > 2000.
+        {
             return;
         }
 
         let line_style = PrimitiveStyle::with_stroke(BinaryColor::On, 1);
-        let mut r_u = (c.rad() / self.control.scale) as u32;
-        if r_u == 0 {
-            r_u = 1;
-        }
+        let r_u = rad.max(1.) as u32;
         let r_i = r_u as i32;
         Circle::new(Point::new(x as i32 - r_i, y as i32 - r_i), r_u * 2)
             .into_styled(line_style)
