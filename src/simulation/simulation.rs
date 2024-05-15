@@ -1,14 +1,23 @@
 use crate::gui::ControlMessage;
 use crate::World;
-use nalgebra::{SMatrix, vector};
+use nalgebra::{vector, SMatrix};
 use rapier3d::crossbeam;
-use rapier3d::prelude::{ActiveEvents, BroadPhase, BroadPhaseMultiSap, CCDSolver, ChannelEventCollector, ColliderBuilder, ColliderSet, ImpulseJointSet, IntegrationParameters, IslandManager, MultibodyJointSet, NarrowPhase, PhysicsPipeline, QueryPipeline, RigidBodyBuilder, RigidBodySet};
+use rapier3d::prelude::{
+    ActiveEvents, BroadPhaseMultiSap, CCDSolver,
+    ChannelEventCollector, ColliderBuilder, ColliderSet, ImpulseJointSet,
+    IntegrationParameters, IslandManager, MultibodyJointSet, NarrowPhase,
+    PhysicsPipeline, QueryPipeline, RigidBodyBuilder, RigidBodySet,
+};
 use std::time::Duration;
 use tokio::sync::mpsc::error::TryRecvError;
 use tokio::sync::{mpsc, watch};
 use tokio::time::{interval, Instant};
+use crate::world::celestials::Celestial;
+use crate::world::spaceship::Spaceship;
 
 struct Rapier {
+    pub rigid_body_set: RigidBodySet,
+    pub collider_set: ColliderSet,
     pub gravity: SMatrix<f32, 3, 1>,
     pub integration_parameters: IntegrationParameters,
     pub physics_pipeline: PhysicsPipeline,
@@ -26,10 +35,11 @@ struct Rapier {
 impl Default for Rapier {
     fn default() -> Self {
         let (collision_send, _) = crossbeam::channel::unbounded();
-        let (contact_force_send, _) =
-            crossbeam::channel::unbounded();
+        let (contact_force_send, _) = crossbeam::channel::unbounded();
 
         Self {
+            rigid_body_set: RigidBodySet::new(),
+            collider_set: ColliderSet::new(),
             gravity: vector![0.0, 0.0, 0.0],
             integration_parameters: IntegrationParameters::default(),
             physics_pipeline: PhysicsPipeline::new(),
@@ -49,6 +59,46 @@ impl Default for Rapier {
     }
 }
 
+impl Rapier {
+    pub fn add_celestial(&mut self, c: &mut Celestial) {
+        let rigid_body = RigidBodyBuilder::dynamic()
+            .translation(c.pos().into())
+            .linvel(c.vel().into())
+            .additional_mass(c.mass() as f32)
+            .build();
+        let collider = ColliderBuilder::ball(c.rad() as f32)
+            .restitution(0.7)
+            .active_events(ActiveEvents::COLLISION_EVENTS)
+            .build();
+        let handle = self.rigid_body_set.insert(rigid_body);
+        self.collider_set.insert_with_parent(
+            collider,
+            handle,
+            &mut self.rigid_body_set,
+        );
+        c.set_rapier_handle(handle);
+    }
+
+    pub fn add_spaceship(&mut self, s: &mut Spaceship) {
+        let rigid_body = RigidBodyBuilder::dynamic()
+            .translation(s.pos().into())
+            .linvel(s.vel().into())
+            .additional_mass(s.mass() as f32)
+            .build();
+        let collider = ColliderBuilder::cuboid(0.5, 0.5, 0.5)
+            .restitution(0.7)
+            .active_events(ActiveEvents::COLLISION_EVENTS)
+            .build();
+        let handle = self.rigid_body_set.insert(rigid_body);
+        self.collider_set.insert_with_parent(
+            collider,
+            handle,
+            &mut self.rigid_body_set,
+        );
+        s.set_rapier_handle(handle);
+    }
+}
+
 pub struct Simulation {
     world: World,
     world_publisher: watch::Sender<World>,
@@ -61,7 +111,7 @@ pub struct Simulation {
 
 impl Simulation {
     pub fn new(
-        world: World,
+        mut world: World,
         simulation_fps: u32,
         time_speed: f64,
         control: mpsc::Receiver<ControlMessage>,
@@ -70,6 +120,14 @@ impl Simulation {
         let delta_t = time_speed / simulation_fps as f64;
         let mut rapier = Rapier::default();
         rapier.integration_parameters.dt = delta_t as f32;
+
+        for c in world.celestials.get_mut().values_mut() {
+            rapier.add_celestial(c);
+        }
+
+        for s in &mut world.spaceships.values_mut() {
+            rapier.add_spaceship(s);
+        }
 
         (
             Self {
@@ -86,23 +144,6 @@ impl Simulation {
     }
 
     pub async fn spin(&mut self) -> Result<(), String> {
-        let mut rigid_body_set = RigidBodySet::new();
-        let mut collider_set = ColliderSet::new();
-
-        let rigid_body = RigidBodyBuilder::dynamic()
-            .translation(vector![30.0, 4.0, 0.0])
-            .build();
-        let collider = ColliderBuilder::cuboid(0.5, 0.5, 0.5)
-            .restitution(0.7)
-            .active_events(ActiveEvents::COLLISION_EVENTS)
-            .build();
-        let body_1_handle = rigid_body_set.insert(rigid_body);
-        collider_set.insert_with_parent(
-            collider,
-            body_1_handle,
-            &mut rigid_body_set,
-        );
-
         let mut interval =
             interval(Duration::from_secs_f64(1. / self.simulation_fps as f64));
 
@@ -138,18 +179,27 @@ impl Simulation {
                 }
             }
 
-            for spaceship in self.world.spaceships.values_mut() {
+            for (_, c) in self.world.celestials.get() {
+                let handle = c.rapier_handle.unwrap();
+                let body = self.rapier.rigid_body_set.get_mut(handle).unwrap();
                 let a = self
                     .world
                     .celestials
-                    .get_global_acceleration(spaceship.pos());
-                spaceship.apply_gravity(a, self.delta_t);
+                    .get_global_acceleration(c.pos());
+                body.reset_forces(true);
+                body.add_force(a.into(), true);
             }
-            self.world.celestials.update(self.delta_t);
 
-            self.world_publisher
-                .send(self.world.clone())
-                .map_err(|e| format!("World publisher died: {}", e))?;
+            for s in &mut self.world.spaceships.values_mut() {
+                let handle = s.rapier_handle.unwrap();
+                let body = self.rapier.rigid_body_set.get_mut(handle).unwrap();
+                let a = self
+                    .world
+                    .celestials
+                    .get_global_acceleration(s.pos());
+                body.reset_forces(true);
+                body.add_force(a.into(), true);
+            }
 
             self.rapier.physics_pipeline.step(
                 &self.rapier.gravity,
@@ -157,8 +207,8 @@ impl Simulation {
                 &mut self.rapier.island_manager,
                 &mut self.rapier.broad_phase,
                 &mut self.rapier.narrow_phase,
-                &mut rigid_body_set,
-                &mut collider_set,
+                &mut self.rapier.rigid_body_set,
+                &mut self.rapier.collider_set,
                 &mut self.rapier.impulse_joint_set,
                 &mut self.rapier.multibody_joint_set,
                 &mut self.rapier.ccd_solver,
@@ -166,6 +216,24 @@ impl Simulation {
                 &self.rapier.physics_hooks,
                 &self.rapier.event_handler,
             );
+
+            for c in self.world.celestials.get_mut().values_mut() {
+                let handle = c.rapier_handle.unwrap();
+                let body = self.rapier.rigid_body_set.get(handle).unwrap();
+                let pos = body.position().translation.into();
+                c.set_pos(pos);
+            }
+
+            for s in &mut self.world.spaceships.values_mut() {
+                let handle = s.rapier_handle.unwrap();
+                let body = self.rapier.rigid_body_set.get(handle).unwrap();
+                let pos = body.position().translation.into();
+                s.set_pos(pos);
+            }
+
+            self.world_publisher
+                .send(self.world.clone())
+                .map_err(|e| format!("World publisher died: {}", e))?;
         }
     }
 }

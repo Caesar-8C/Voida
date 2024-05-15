@@ -23,7 +23,7 @@ async fn main() -> Result<(), String> {
     let world = World::new(celestials, spaceships);
     let (control_sender, control_receiver) = mpsc::channel(100);
 
-    let simulation_fps = 10_000;
+    let simulation_fps = 1_000;
     let time_speed = 500.;
 
     let (mut simulation, world_watch) =
