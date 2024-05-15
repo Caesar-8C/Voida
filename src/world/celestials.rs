@@ -1,7 +1,8 @@
 use crate::utils::{NormVec3, Vec3, G};
+use rapier3d::prelude::RigidBodyHandle;
 use std::collections::HashMap;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Celestials(HashMap<String, Celestial>);
 
 impl Celestials {
@@ -15,6 +16,10 @@ impl Celestials {
 
     pub fn get(&self) -> HashMap<String, Celestial> {
         self.0.clone()
+    }
+
+    pub fn get_mut (&mut self) -> &mut HashMap<String, Celestial> {
+        &mut self.0
     }
 
     pub fn get_global_acceleration(&self, origin: Vec3) -> Vec3 {
@@ -35,23 +40,24 @@ impl Celestials {
         acceleration
     }
 
-    pub fn update(&mut self, delta_t: f64) {
+    pub fn _update(&mut self, delta_t: f64) {
         let old_world = self.clone();
 
         for celestial in self.0.values_mut() {
             let a = old_world.get_global_acceleration(celestial.pos());
-            celestial.apply_gravity(a, delta_t);
+            celestial._apply_gravity(a, delta_t);
         }
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Celestial {
     name: String,
     mass: f64,
     pos: Vec3,
     vel: Vec3,
     rad: f64,
+    pub rapier_handle: Option<RigidBodyHandle>,
 }
 
 impl Celestial {
@@ -68,7 +74,12 @@ impl Celestial {
             pos,
             vel,
             rad,
+            rapier_handle: None,
         }
+    }
+
+    pub fn set_rapier_handle(&mut self, handle: RigidBodyHandle) {
+        self.rapier_handle = Some(handle);
     }
 
     pub fn name(&self) -> String {
@@ -77,6 +88,10 @@ impl Celestial {
 
     pub fn pos(&self) -> Vec3 {
         self.pos.clone()
+    }
+
+    pub fn set_pos(&mut self, pos: Vec3) {
+        self.pos = pos;
     }
 
     pub fn vel(&self) -> Vec3 {
@@ -91,7 +106,7 @@ impl Celestial {
         self.rad
     }
 
-    pub fn apply_gravity(&mut self, acceleration: Vec3, delta_t: f64) {
+    pub fn _apply_gravity(&mut self, acceleration: Vec3, delta_t: f64) {
         self.vel += acceleration * delta_t;
         self.pos += &self.vel * delta_t;
     }

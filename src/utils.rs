@@ -1,5 +1,5 @@
 use approx::AbsDiff;
-use nalgebra::Matrix3;
+use nalgebra::{Matrix3, Translation, Vector3};
 use std::ops;
 
 pub const G: f64 = 6.6743_f64 * 0.000_000_000_01;
@@ -162,6 +162,22 @@ impl ops::Sub<&Vec3> for &Vec3 {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
             z: self.z - rhs.z,
+        }
+    }
+}
+
+impl From<Vec3> for Vector3<f32> {
+    fn from(val: Vec3) -> Self {
+        Vector3::new(val.x as f32, val.y as f32, val.z as f32)
+    }
+}
+
+impl From<Translation<f32, 3>> for Vec3 {
+    fn from(val: Translation<f32, 3>) -> Self {
+        Vec3 {
+            x: val.x as f64,
+            y: val.y as f64,
+            z: val.z as f64,
         }
     }
 }

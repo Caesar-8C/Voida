@@ -36,7 +36,7 @@ impl From<Celestial> for Body {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct World {
     pub celestials: Celestials,
     pub spaceships: HashMap<String, Spaceship>,
